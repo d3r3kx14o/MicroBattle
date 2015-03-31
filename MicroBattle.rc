@@ -1,0 +1,11 @@
+#define RC_BACKGROUND 1
+RC_BACKGROUND BITMAP "res/background.bmp"
+#define RC_PLAYER1 2
+RC_PLAYER1 BITMAP "res/bluePlayer.bmp"
+#define RC_PLAYER2 3
+RC_PLAYER2 BITMAP "res/redPlayer.bmp"
+#define RC_PLAYER1MASK 4
+RC_PLAYER1MASK BITMAP "res/bluePlayerMask.bmp"
+#define RC_PLAYER2MASK 5
+RC_PLAYER2MASK BITMAP "res/redPlayerMask.bmp"
+
