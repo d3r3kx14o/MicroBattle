@@ -8,4 +8,5 @@ RC_PLAYER2 BITMAP "res/redPlayer.bmp"
 RC_PLAYER1MASK BITMAP "res/bluePlayerMask.bmp"
 #define RC_PLAYER2MASK 5
 RC_PLAYER2MASK BITMAP "res/redPlayerMask.bmp"
-
+#define RC_BULLET 114
+RC_BULLET  BITMAP "res/bullet.bmp"
