@@ -150,7 +150,7 @@
 	WindowWidth	    	dd 		1000
 	WindowHeight	    dd 		750
 	PlaygroundTop		dd 		0
-	PlaygroundBottom 	dd 		50
+	PlaygroundBottom 	dd 		500
 	PlaygroundWidth 	dd  	800
 	PlayerWidth	    	dd 		85
 	playerHeight 		dd 		84
