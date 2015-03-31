@@ -36,6 +36,7 @@
 	RC_PLAYER1MASK 		equ 	4
 	RC_PLAYER2MASK 		equ 	5
 	RC_BULLET			equ		114
+	RC_SMOKE			equ		115
 
 	;=================
 	; Local prototypes
@@ -71,6 +72,12 @@
 	return MACRO rev
 		mov eax, rev
 		ret
+	ENDM
+
+	xchgM MACRO M1, M2
+		push M1
+		m2m M1, M2
+		pop M2
 	ENDM
 	
 	;=============
@@ -122,6 +129,19 @@
 		Players			Player 	2 DUP(<>)
 	PlayersArray ends
 
+	;#### smoke
+	Smoke struct
+		smoke_x 		dd 		0
+		smoke_y			dd 		0
+		speed_x			dd 		0
+		speed_y 		dd 		0
+		stage 			dd 		3
+	Smoke ends
+
+	SmokeArray struct
+		cloud 			Smoke 	30 DUP(<>)
+	SmokeArray ends
+
 .data
 	; Windows variable
 	gameDisplayName	    db 		"MicroBattle - by DoGame", 0
@@ -144,6 +164,7 @@
 	hPlayer2Idle	    dd 		0
 	hPlayer2Mask	    dd 		0
 	hBullet				dd 		0
+	hSmoke				dd 		0
 
 	; Game parameter
 	GameTimerValue	    dd 		17
@@ -151,9 +172,11 @@
 	WindowHeight	    dd 		750
 	PlaygroundTop		dd 		0
 	PlaygroundBottom 	dd 		50
-	PlaygroundWidth 	dd  	800
+	PlaygroundLeft 		dd  	50
+	PlaygroundRight		dd 		800
 	PlayerWidth	    	dd 		85
 	playerHeight 		dd 		84
+	PlayerGunHeight 	dd 		30
 
 	Player1X	    	dd 		20
 	Player1Y	    	dd 		10

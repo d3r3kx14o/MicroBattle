@@ -173,6 +173,9 @@ WndProc proc    hWinL  :DWORD,
                 mov players.Players[SIZEOF Player].speed, eax
             .elseif ebx == 2
             .endif
+        .elseif wParam == VK_ESCAPE
+            invoke PostQuitMessage,NULL
+            return 0
     	.endif
     .endif
 
@@ -207,6 +210,10 @@ LoadGraphics proc
     invoke LoadBitmap, hInstance, RC_BULLET
     mov hBullet, eax
 
+    ;#### smoke
+    invoke LoadBitmap, hInstance, RC_SMOKE
+    mov hSmoke, eax
+
     ret
     
 LoadGraphics endp
@@ -219,7 +226,7 @@ Paint_Proc proc
     LOCAL hBmp:DWORD
     LOCAL playerX: DWORD
 
-invoke CreateCompatibleDC, hDC
+	invoke CreateCompatibleDC, hDC
     mov memDC, eax
 
     invoke CreateCompatibleBitmap, hDC, WindowWidth, WindowHeight
@@ -236,7 +243,7 @@ invoke CreateCompatibleDC, hDC
     push ecx
     push ebx
     mov ecx, 2
-    mov playerX, 0
+    m2m playerX, PlaygroundLeft
     mov ebx, OFFSET (players.Players)[0]
 L1:
     ;#### chose image handle for player given its state
@@ -277,7 +284,7 @@ L1:
         (Player PTR [ebx]).playerWidth,
         (Player PTR [ebx]).playerHeight
     add ebx, SIZEOF Player
-    m2m playerX, PlaygroundWidth
+    m2m playerX, PlaygroundRight
     loop L1
 
     ;#### Paint bullets
@@ -298,10 +305,10 @@ L1:
     pop ebx
     push ecx
 
-  invoke BitBlt,hDC,0,0,WindowWidth,WindowHeight,memDC,0,0,SRCCOPY
+    invoke BitBlt,hDC,0,0,WindowWidth,WindowHeight,memDC,0,0,SRCCOPY
 
-  invoke DeleteDC, memDC
-  invoke DeleteObject,hBmp
+    invoke DeleteDC, memDC
+    invoke DeleteObject,hBmp
 
     ret  
 
@@ -347,12 +354,39 @@ MoveBullets proc
 
 	.while ecx > 0
 		mov eax, (Bullet PTR [edi]).b_x
+        ; check if the bullet is out of range
+        .if (eax > PlaygroundRight) || (eax < PlaygroundLeft)
+
+            mov esi, OFFSET bullets.bullets[0]
+            mov eax, SIZEOF Bullet
+			mov ebx, bullets.len
+			dec ebx
+            mul ebx
+            add esi, eax
+
+			mov eax, (Bullet PTR [esi]).hBullet
+            mov (Bullet PTR [edi]).hBullet, eax
+
+			mov eax, (Bullet PTR [esi]).b_x
+            mov (Bullet PTR [edi]).b_x, eax
+
+            m2m (Bullet PTR [edi]).b_y, (Bullet PTR [esi]).b_y
+            m2m (Bullet PTR [edi]).speed_x, (Bullet PTR [esi]).speed_x
+            m2m (Bullet PTR [edi]).speed_y, (Bullet PTR [esi]).speed_y
+            dec bullets.len
+
+            jmp Con
+        .endif
+
 		add eax, (Bullet PTR [edi]).speed_x
 		mov (Bullet PTR [edi]).b_x, eax
 
 		mov eax, (Bullet PTR [edi]).b_y
 		add eax, (Bullet PTR [edi]).speed_y
 		mov (Bullet PTR [edi]).b_y, eax
+
+        add edi, SIZEOF Bullet
+Con:
 		dec ecx
     .endw
 
@@ -365,6 +399,9 @@ MoveBullets endp
 
 FireBullet  proc player :DWORD
     pushad
+    .if bullets.len == 10
+        jmp Fin     
+    .endif
     invoke sndPlaySound, addr shootMini, SND_ASYNC
     mov edi, OFFSET bullets.bullets[0]
     mov eax, SIZEOF Bullet
@@ -372,21 +409,24 @@ FireBullet  proc player :DWORD
     add edi, eax
 	.if player == 0
 		mov ecx, offset players.Players[0]
+        mov eax, PlaygroundLeft
+        mov (Bullet PTR [edi]).speed_x, 5
 	.elseif
 		mov ecx, offset players.Players[SIZEOF Player]
+        mov eax, PlaygroundRight
+        mov (Bullet PTR [edi]).speed_x, -5
 	.endif
 
-    m2m (Bullet PTR [edi]).hBullet, hBullet
-	mov eax, (Player PTR [ecx]).p_y
+	mov (Bullet PTR [edi]).b_x, eax
+
+    mov eax, (Player PTR [ecx]).p_y
+    add eax, PlayerGunHeight
     mov (Bullet PTR [edi]).b_y, eax
-	mov eax, (Player PTR [ecx]).p_x
-    mov (Bullet PTR [edi]).b_x, eax
-    .if eax > 500
-        mov (Bullet PTR [edi]).speed_x, -5
-    .endif
+    m2m (Bullet PTR [edi]).hBullet, hBullet	
 
     inc bullets.len
 
+Fin:
     popad
     ret
 FireBullet  endp
@@ -431,11 +471,11 @@ TopXY endp
 ; ######################################################################### 
 
 PaintBMPMask proc BmpHandle:DWORD,
-          BmpHandleMask:DWORD, 
-          PosX:DWORD,
-          PosY:DWORD,
-          BmpW:DWORD,
-          BmpH:DWORD
+            BmpHandleMask:DWORD, 
+            PosX:DWORD,
+            PosY:DWORD,
+            BmpW:DWORD,
+            BmpH:DWORD
     
 
     LOCAL memDC:DWORD
