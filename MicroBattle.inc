@@ -37,6 +37,7 @@
 	RC_PLAYER2MASK 		equ 	5
 	RC_BULLET			equ		114
 	RC_SMOKE			equ		115
+	MICROBATTLE_ICON 	equ 	500
 
 	;=================
 	; Local prototypes
@@ -52,7 +53,9 @@
 	GameTimer PROTO
 	MovePlayers PROTO
 	MoveBullets PROTO
+	MoveSmoke PROTO
 	FireBullet  PROTO :DWORD
+	AddSmoke PROTO :DWORD, :DWORD, :DWORD, :DWORD
 
 	;=============
 	; Local macros
@@ -89,7 +92,7 @@
 		hBullet			dd		0
 		b_x	    		dd 		0
 		b_y	    		dd 		0
-		speed_x   		dd 		5
+		speed_x   		dd 		0
 		speed_y   		dd 		0
 		bulletHeight	dd 		17
 		bulletWidth		dd 		36
@@ -135,11 +138,12 @@
 		smoke_y			dd 		0
 		speed_x			dd 		0
 		speed_y 		dd 		0
-		stage 			dd 		3
+		stage 			dd 		0
 	Smoke ends
 
 	SmokeArray struct
-		cloud 			Smoke 	30 DUP(<>)
+		smoke 			Smoke 	200 DUP(<>)
+		len 			dd 		0
 	SmokeArray ends
 
 .data
@@ -167,16 +171,23 @@
 	hSmoke				dd 		0
 
 	; Game parameter
-	GameTimerValue	    dd 		17
+	GameTimerValue	    dd 		10
 	WindowWidth	    	dd 		1000
 	WindowHeight	    dd 		750
 	PlaygroundTop		dd 		0
-	PlaygroundBottom 	dd 		50
+	PlaygroundBottom 	dd 		400
 	PlaygroundLeft 		dd  	50
 	PlaygroundRight		dd 		800
 	PlayerWidth	    	dd 		85
 	playerHeight 		dd 		84
 	PlayerGunHeight 	dd 		30
+	smokeWidth 			dd 		8
+	smokeHeight			dd 		8
+	SmokeSpeedDecay 	dd 		3
+	BulletInitSpeed		dd 		10
+	BulletStageNumber	dd		8
+	BulletWidth			dd 		36
+
 
 	Player1X	    	dd 		20
 	Player1Y	    	dd 		10
@@ -193,6 +204,7 @@
 
 	players 			PlayersArray <>
 	bullets 			BulletsArray <>
+	cloud 				SmokeArray <>
 	
 	;=================
 	; Local mini

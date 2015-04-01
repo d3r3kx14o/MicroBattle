@@ -12,3 +12,5 @@ RC_PLAYER2MASK BITMAP "res/redPlayerMask.bmp"
 RC_BULLET  BITMAP "res/bullet.bmp"
 #define RC_SMOKE 115
 RC_SMOKE BITMAP "res/smoke.bmp"
+#define MICROBATTLE_ICON 500
+MICROBATTLE_ICON ICON "res/microBattle.ico"

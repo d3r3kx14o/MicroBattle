@@ -238,6 +238,7 @@ Paint_Proc proc
 
     ;#### Paint BackGround
     invoke PaintBMP, hBmpBackround, 0, 0, WindowWidth, WindowHeight
+    invoke PaintBMP, hSmoke, 0, 0, 8, 8
 
     ;#### Paint player1
     push ecx
@@ -302,6 +303,19 @@ L1:
         dec ecx
     .endw
 
+    ;#### Paint Smoke
+    mov ecx, cloud.len
+    mov ebx, OFFSET cloud.smoke[0]
+
+    .while ecx > 0
+        invoke PaintBMP, hSmoke,
+            (Smoke PTR [ebx]).smoke_x,
+            (Smoke PTR [ebx]).smoke_y,
+            smokeWidth, smokeHeight
+        add ebx, SIZEOF Smoke
+        dec ecx
+    .endw
+
     pop ebx
     push ecx
 
@@ -341,9 +355,82 @@ PaintBMP endp
     
 GameTimer proc
     invoke MoveBullets
+    invoke MoveSmoke
 	invoke MovePlayers
 	ret
 GameTimer endp
+
+; #########################################################################
+
+MoveSmoke proc
+        LOCAL stage :DWORD
+    pushad
+
+    mov ecx, cloud.len
+    mov edi, OFFSET cloud.smoke
+
+    .while ecx > 0
+        mov eax, (Smoke PTR [edi]).smoke_x
+        mov ebx, (Smoke PTR [edi]).smoke_y
+        mov edx, (Smoke PTR [edi]).stage
+        mov stage, edx
+        ; check if the particle is out of range
+        .if (eax < PlaygroundLeft) || (eax > PlaygroundRight) \
+                || (ebx < PlaygroundTop) || (ebx > PlaygroundBottom) \
+                || (edx == 0)
+                ; TODO
+            mov esi, OFFSET cloud.smoke
+            mov eax, cloud.len
+            dec eax
+			mov ebx, SIZEOF Smoke
+            mul ebx
+            add esi, eax
+
+            m2m (Smoke PTR [edi]).smoke_x, (Smoke PTR [esi]).smoke_x
+            m2m (Smoke PTR [edi]).smoke_y, (Smoke PTR [esi]).smoke_y
+            m2m (Smoke PTR [edi]).speed_x, (Smoke PTR [esi]).speed_x
+            m2m (Smoke PTR [edi]).speed_y, (Smoke PTR [esi]).speed_y
+            m2m (Smoke PTR [edi]).stage, (Smoke PTR [esi]).stage
+
+            dec cloud.len
+
+            jmp Con
+        .endif
+
+		shr edx, 2
+        mov edx, (Smoke PTR [edi]).speed_x
+        .if edx < 0fffffffh
+            sub edx, SmokeSpeedDecay
+            add eax, stage
+        .elseif edx > 0fffffffh
+            add edx, SmokeSpeedDecay
+            sub eax, stage
+        .endif
+		mov (Smoke PTR [edi]).speed_x, edx
+
+        mov edx, (Smoke PTR [edi]).speed_y
+        .if edx < 0fffffffh
+            sub edx, SmokeSpeedDecay
+            add ebx, stage
+        .elseif edx > 0fffffffh
+            add edx, SmokeSpeedDecay
+            sub ebx, stage
+        .endif
+        mov (Smoke PTR [edi]).speed_y, edx
+
+        mov (Smoke PTR [edi]).smoke_x, eax
+        mov (Smoke PTR [edi]).smoke_y, ebx
+        dec (Smoke PTR [edi]).stage
+
+        add edi, SIZEOF Smoke
+Con:
+        dec ecx
+    .endw
+
+    popad
+    ret
+
+MoveSmoke endp
 
 ; #########################################################################
 
@@ -354,9 +441,8 @@ MoveBullets proc
 
 	.while ecx > 0
 		mov eax, (Bullet PTR [edi]).b_x
-        ; check if the bullet is out of range
         .if (eax > PlaygroundRight) || (eax < PlaygroundLeft)
-
+            ; check if the bullet is out of range
             mov esi, OFFSET bullets.bullets[0]
             mov eax, SIZEOF Bullet
 			mov ebx, bullets.len
@@ -364,11 +450,8 @@ MoveBullets proc
             mul ebx
             add esi, eax
 
-			mov eax, (Bullet PTR [esi]).hBullet
-            mov (Bullet PTR [edi]).hBullet, eax
-
-			mov eax, (Bullet PTR [esi]).b_x
-            mov (Bullet PTR [edi]).b_x, eax
+            m2m (Bullet PTR [edi]).hBullet, (Bullet PTR [esi]).hBullet
+            m2m (Bullet PTR [edi]).b_x, (Bullet PTR [esi]).b_x
 
             m2m (Bullet PTR [edi]).b_y, (Bullet PTR [esi]).b_y
             m2m (Bullet PTR [edi]).speed_x, (Bullet PTR [esi]).speed_x
@@ -376,14 +459,31 @@ MoveBullets proc
             dec bullets.len
 
             jmp Con
+
         .endif
 
 		add eax, (Bullet PTR [edi]).speed_x
 		mov (Bullet PTR [edi]).b_x, eax
 
 		mov eax, (Bullet PTR [edi]).b_y
-		add eax, (Bullet PTR [edi]).speed_y
+        mov ebx, (Bullet PTR [edi]).speed_y
+		add eax, ebx
+        .if (eax < PlaygroundTop) || (eax > PlaygroundBottom)
+            ; if the bullet hit the top or the bottom
+            neg ebx
+            mov (Bullet PTR [edi]).speed_y, ebx
+			add eax, ebx
+			add eax, ebx
+        .endif
+
 		mov (Bullet PTR [edi]).b_y, eax
+
+
+        invoke AddSmoke,
+                (Bullet PTR [edi]).b_x,
+                eax,
+                (Bullet PTR [edi]).speed_x, 
+                (Bullet PTR [edi]).speed_y
 
         add edi, SIZEOF Bullet
 Con:
@@ -394,6 +494,50 @@ Con:
     ret
 
 MoveBullets endp
+
+; #########################################################################
+
+AddSmoke proc start_x :DWORD, start_y :DWORD, direction_x :DWORD, direction_y :DWORD
+    pushad
+
+    ; add smoke cubes
+    mov eax, cloud.len
+
+    .if eax > 195
+        jmp Fin
+    .endif
+	mov ebx, SIZEOF Smoke
+    mul ebx
+    mov edi, OFFSET cloud.smoke[0]
+    add edi, eax
+
+    mov ecx, 1
+    .while ecx > 0
+		m2m (Smoke PTR [edi]).stage, BulletStageNumber
+        mov eax, direction_y
+        mov (Smoke PTR [edi]).speed_y, eax
+		mov eax, direction_x
+        mov (Smoke PTR [edi]).speed_x, eax
+		.if eax > 0fffffffh
+			mov ebx, start_x
+			add ebx, BulletWidth
+			mov (Smoke PTR [edi]).smoke_x, ebx
+		.else
+			m2m (Smoke PTR [edi]).smoke_x, start_x
+		.endif
+        m2m (Smoke PTR [edi]).smoke_y, start_y
+
+
+        add edi, SIZEOF Smoke
+		inc cloud.len
+        dec ecx
+    .endw
+
+Fin:
+    popad
+    ret
+
+AddSmoke endp
 
 ; #########################################################################
 
@@ -410,12 +554,16 @@ FireBullet  proc player :DWORD
 	.if player == 0
 		mov ecx, offset players.Players[0]
         mov eax, PlaygroundLeft
-        mov (Bullet PTR [edi]).speed_x, 5
+        m2m (Bullet PTR [edi]).speed_x, BulletInitSpeed
 	.elseif
 		mov ecx, offset players.Players[SIZEOF Player]
         mov eax, PlaygroundRight
-        mov (Bullet PTR [edi]).speed_x, -5
+        m2m (Bullet PTR [edi]).speed_x, BulletInitSpeed
+		neg (Bullet PTR [edi]).speed_x
 	.endif
+
+
+	mov (Bullet PTR [edi]).speed_y, 15
 
 	mov (Bullet PTR [edi]).b_x, eax
 
