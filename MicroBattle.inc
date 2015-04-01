@@ -30,15 +30,32 @@
 
 ; #########################################################################
 
-	RC_BACKGROUND 		equ 	1
-	RC_PLAYER1 			equ 	2
-	RC_PLAYER2 			equ 	3
-	RC_PLAYER1MASK 		equ 	4
-	RC_PLAYER2MASK 		equ 	5
-	RC_BULLET			equ		114
-	RC_BULLETMASK		equ		115
-	RC_SMOKE			equ		116
-	MICROBATTLE_ICON 	equ 	500
+	RC_BACKGROUND 				equ 	1
+
+	RC_PLAYER1 					equ 	2
+	RC_PLAYER2 					equ 	3
+	RC_PLAYER1MASK 				equ 	4
+	RC_PLAYER2MASK 				equ 	5
+	RC_PLAYER1_DIE				equ 	6
+	RC_PLAYER2_DIE				equ 	7
+	RC_PLAYER1_DIEMASK			equ 	8
+	RC_PLAYER2_DIEMASK			equ 	9
+	RC_PLAYER1_NOGUN			equ 	10
+	RC_PLAYER2_NOGUN			equ 	11
+	RC_PLAYER1_NOGUNMASK		equ 	12
+	RC_PLAYER2_NOGUNMASK		equ 	13
+
+	RC_BULLET					equ		114
+	RC_BULLETMASK				equ		115
+	RC_SMOKE					equ		116
+	RC_CACTUS 					equ 	117
+	RC_CACTUSMASK				equ 	118
+	RC_BUCKET 					equ 	119
+	RC_BUCKETMASK				equ 	120
+	RC_STONE					equ 	121
+	RC_STONEMASK				equ 	122
+
+	MICROBATTLE_ICON 			equ 	500
 
 	;=================
 	; Local prototypes
@@ -58,6 +75,9 @@
 	FireBullet  PROTO :DWORD
 	AddSmoke PROTO :DWORD, :DWORD, :DWORD, :DWORD
 	SetupScene PROTO
+	FakeRandom PROTO :DWORD
+	prand PROTO :DWORD
+	pseed PROTO  :DWORD,:DWORD,:DWORD,:DWORD
 
 	;=============
 	; Local macros
@@ -114,6 +134,12 @@
 		state	    	db 		0
 	Item ends
 
+	;#### items
+	ItemArray struct
+		Items 			Item 	30 DUP(<>)
+		len 			dd 		0
+	ItemArray ends
+
 	;#### player
 	Player struct
 		hPlayer			dd 		0
@@ -162,16 +188,26 @@
 	; Image handle variable
 	hBmpBackround	    dd 		0
 	hPlayer1	    	dd 		0
-	hPlayer1Dead	    dd 		0
-	hPlayer1Idle	    dd 		0				;there is 3 state of player
 	hPlayer1Mask	    dd 		0
+	hPlayer1Dead	    dd 		0
+	hPlayer1DeadMask    dd 		0
+	hPlayer1Idle	    dd 		0
+	hPlayer1IdleMask    dd 		0
 	hPlayer2	    	dd 		0
-	hPlayer2Dead	    dd 		0
-	hPlayer2Idle	    dd 		0
 	hPlayer2Mask	    dd 		0
+	hPlayer2Dead	    dd 		0
+	hPlayer2DeadMask    dd 		0
+	hPlayer2Idle	    dd 		0
+	hPlayer2IdleMask    dd 		0
 	hBullet				dd 		0
 	hBulletMask			dd 		0
 	hSmoke				dd 		0
+	hCactus 			dd 		0
+	hCactusMask			dd 		0
+	hBucket				dd 		0
+	hBucketMask			dd 		0
+	hStone 				dd 		0
+	hStoneMask			dd 		0
 
 	; Game parameter
 	GameTimerValue	    dd 		17
@@ -192,7 +228,8 @@
 	BulletInitSpeed		dd 		10
 	BulletStageNumber	dd		8
 	BulletWidth			dd 		36
-
+	CactusWidth 		dd 		55
+	CactusHeight		dd 		81
 
 	Player1X	    	dd 		20
 	Player1Y	    	dd 		10
@@ -210,11 +247,20 @@
 	players 			PlayersArray <>
 	bullets 			BulletsArray <>
 	cloud 				SmokeArray <>
+	items 				ItemArray <>
 	
 	;=================
 	; Local mini
 	;=================
 	shootMini	    	db "res/shoot.wav", 	0
+
+	;=================
+	; Random Seeds
+	;=================
+	seed1  dd 0AAAABBBBh
+	seed2  dd 0CCCCDDDDh
+	seed3  dd 0EEEEFFFFh
+	seed4  dd 11112222h
 
 ; ########################### Inserted modules ############################
 

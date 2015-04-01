@@ -8,11 +8,44 @@ RC_PLAYER2 BITMAP "res/redPlayer.bmp"
 RC_PLAYER1MASK BITMAP "res/bluePlayerMask.bmp"
 #define RC_PLAYER2MASK 5
 RC_PLAYER2MASK BITMAP "res/redPlayerMask.bmp"
+
+#define RC_PLAYER1_DIE 6
+RC_PLAYER1_DIE BITMAP "res/bluePlayer_die.bmp"
+#define RC_PLAYER2_DIE 7
+RC_PLAYER2_DIE BITMAP "res/redPlayer_die.bmp"
+#define RC_PLAYER1_DIEMASK 8
+RC_PLAYER1_DIEMASK BITMAP "res/bluePlayer_dieMask.bmp"
+#define RC_PLAYER2_DIEMASK 9
+RC_PLAYER2_DIEMASK BITMAP "res/redPlayer_dieMask.bmp"
+
+#define RC_PLAYER1_NOGUN 10
+RC_PLAYER1_NOGUN BITMAP "res/bluePlayer_noGun.bmp"
+#define RC_PLAYER2_NOGUN 11
+RC_PLAYER2_NOGUN BITMAP "res/redPlayer_noGun.bmp"
+#define RC_PLAYER1_NOGUNMASK 12
+RC_PLAYER1_NOGUNMASK BITMAP "res/bluePlayer_noGunMask.bmp"
+#define RC_PLAYER2_NOGUNMASK 13
+RC_PLAYER2_NOGUNMASK BITMAP "res/redPlayer_noGunMask.bmp"
+
 #define RC_BULLET 114
-RC_BULLET  BITMAP "res/bullet.bmp"
+RC_BULLET BITMAP "res/bullet.bmp"
 #define RC_BULLETMASK 115
-RC_BULLETMASK  BITMAP "res/bulletMask.bmp"
+RC_BULLETMASK BITMAP "res/bulletMask.bmp"
 #define RC_SMOKE 116
 RC_SMOKE BITMAP "res/smoke.bmp"
+
+#define RC_CACTUS 117
+RC_CACTUS BITMAP "res/cactus.bmp"
+#define RC_CACTUSMASK 118
+RC_CACTUSMASK BITMAP "res/cactusMask.bmp"
+#define RC_BUCKET 119
+RC_BUCKET BITMAP "res/bucket.bmp"
+#define RC_BUCKETMASK 120
+RC_BUCKETMASK BITMAP "res/bucketMask.bmp"
+#define RC_STONE 121
+RC_STONE BITMAP "res/stone.bmp"
+#define RC_STONEMASK 122
+RC_STONEMASK BITMAP "res/stoneMask.bmp"
+
 #define MICROBATTLE_ICON 500
 MICROBATTLE_ICON ICON "res/microBattle.ico"

@@ -201,6 +201,18 @@ LoadGraphics proc
     ;#### player1Mask
     invoke LoadBitmap, hInstance, RC_PLAYER1MASK
     mov hPlayer1Mask, eax
+    ;#### player1 idle
+    invoke LoadBitmap, hInstance, RC_PLAYER1_NOGUN
+    mov hPlayer1Idle, eax
+    ;#### player1 idle mask
+    invoke LoadBitmap, hInstance, RC_PLAYER1_NOGUNMASK
+    mov hPlayer1IdleMask, eax
+    ;#### player1 dead
+    invoke LoadBitmap, hInstance, RC_PLAYER1_DIE
+    mov hPlayer1Dead, eax
+    ;#### player1 dead mask
+    invoke LoadBitmap, hInstance, RC_PLAYER1_DIEMASK
+    mov hPlayer1DeadMask, eax
 
     ;#### player2
     invoke LoadBitmap, hInstance, RC_PLAYER2
@@ -208,6 +220,18 @@ LoadGraphics proc
     ;#### player2Mask
     invoke LoadBitmap, hInstance, RC_PLAYER2MASK
     mov hPlayer2Mask, eax
+    ;#### player2 idle
+    invoke LoadBitmap, hInstance, RC_PLAYER2_NOGUN
+    mov hPlayer2Idle, eax
+    ;#### player2 idle mask
+    invoke LoadBitmap, hInstance, RC_PLAYER2_NOGUNMASK
+    mov hPlayer2IdleMask, eax
+    ;#### player2 dead
+    invoke LoadBitmap, hInstance, RC_PLAYER2_DIE
+    mov hPlayer2Dead, eax
+    ;#### player2 dead mask
+    invoke LoadBitmap, hInstance, RC_PLAYER2_DIEMASK
+    mov hPlayer2DeadMask, eax
 
     ;#### bullet
     invoke LoadBitmap, hInstance, RC_BULLET
@@ -215,10 +239,29 @@ LoadGraphics proc
     ;#### bullet mask
     invoke LoadBitmap, hInstance, RC_BULLETMASK
     mov hBulletMask, eax
+    ;#### bucket
+    invoke LoadBitmap, hInstance, RC_BUCKET
+    mov hBucket, eax
+    ;#### bucket mask
+    invoke LoadBitmap, hInstance, RC_BUCKETMASK
+    mov hBucketMask, eax
+    ;#### stone
+    invoke LoadBitmap, hInstance, RC_STONE
+    mov hStone, eax
+    ;#### stone mask
+    invoke LoadBitmap, hInstance, RC_STONEMASK
+    mov hStoneMask, eax
 
     ;#### smoke
     invoke LoadBitmap, hInstance, RC_SMOKE
     mov hSmoke, eax
+
+    ;#### cactus
+    invoke LoadBitmap, hInstance, RC_CACTUS
+    mov hCactus, eax
+    ;#### cactus mask
+    invoke LoadBitmap, hInstance, RC_CACTUSMASK
+    mov hCactusMask, eax
 
     ret
     
@@ -243,7 +286,6 @@ Paint_Proc proc
 
     ;#### Paint BackGround
     invoke PaintBMP, hBmpBackround, 0, 0, WindowWidth, WindowHeight
-    invoke PaintBMP, hSmoke, 0, 0, 8, 8
 
     ;#### Paint player1
     push ecx
@@ -673,6 +715,158 @@ SetupScene proc
 	ret
 
 SetupScene endp
+
+; ########################################################################
+
+FakeRandom proc MaskWord:DWORD
+    
+    push edi
+
+    ;invoke GetTickCount
+    ;mov edi ,MaskWord
+    ;and eax,edi
+
+    invoke prand,435345345
+    mov edi ,MaskWord
+    and eax,edi
+
+    pop edi 
+    return eax
+FakeRandom Endp
+
+; ########################################################################
+
+;RANDOM ROUTINE FROM http://www.masm32.com/board/index.php?PHPSESSID=b552497e20a62c0d96a7bd80a889b3bb&topic=4895.0
+
+pseed PROC s1:DWORD,s2:DWORD,s3:DWORD,s4:DWORD
+
+    mov eax,s1 ;if s1 = 0 then use default value
+    .if eax!=0
+        mov seed1,eax
+    .endif
+    mov eax,s2 ;if s2 = 0 then use default value
+    .if eax!=0
+        mov seed2,eax
+    .endif
+    mov eax,s3 ;if s3 = 0 then use default value
+    .if eax!=0
+        mov seed3,eax
+    .endif
+    mov eax,s4 ;if s4 = 0 then use default value
+    .if eax!=0
+        mov seed4,eax
+    .endif
+    ret
+
+pseed ENDP
+
+; ######################################################################### 
+
+prand PROC base:DWORD
+    ;seed1 = AAAABBBB
+    ;seed2 = CCCCDDDD
+    ;seed3 = EEEEFFFF
+    ;seed4 = 11112222
+
+    mov eax,seed1 ;AAAABBBB
+    mov ebx,seed2 ;CCCCDDDD
+    mov ecx,seed3 ;EEEEFFFF
+    mov edx,seed4 ;11112222
+    ;start shifting
+    xchg ax,bx    ;eax = AAAADDDD, ebx = CCCCBBBB
+    xchg cx,dx   ;ecx = EEEE2222, edx = 1111FFFF
+    xchg al,cl   ;eax = AAAADD22, ecx = EEEE22DD
+    xchg bl,dl   ;ebx = CCCCBBFF, edx = 1111FFBB
+    push eax   ;AAAADD22
+    push ecx      ;EEEE22DD
+    shl eax,8   ;AADD2200
+    shr ecx,24   ;000000EE
+    add eax,ecx   ;AADD22EE
+    mov seed1,eax   ;s1 = AADD22EE
+    pop ecx   ;EEEE22DD
+    pop eax   ;AAAADD22
+    push ecx   ;EEEE22DD
+    shr eax,24   ;000000AA
+    push edx   ;1111FFBB
+    shl edx,8   ;11FFBB00
+    add edx,eax   ;11FFBBAA
+    mov seed2,edx    ;s2 = 11FFBBAA
+    pop edx   ;1111FFBB
+    shr edx,24   ;00000011
+    push ebx   ;CCCCBBFF
+    shl ebx,8   ;CCBBFF11
+    mov seed3,ebx   ;s3 = CCBBFF11
+    pop ebx   ;CCCCBBFF
+    shr ebx,24   ;000000CC
+    pop ecx   ;EEEE22DD
+    shl ecx,8   ;EE22DD00
+    add ecx,ebx   ;EE22DDCC
+    mov seed4,ecx    ;s4 = EE22DDCC
+    ;start calculating
+    mov eax,seed1
+    mov ecx,16587
+    xor edx,edx
+    div ecx   ;AADD22EE / 16587, result in eax, remainder in edx
+    mov ebx,seed2    ;11FFBBAA
+    xchg ebx,eax 
+    sub eax,ebx   ;11FFBBAA - remainder
+    mov ecx,edx
+    xor edx,edx
+    mul ecx
+    mov seed2,eax    ;seed2 = (s1 / 16587)*(s2 - (s1 % 16587))
+
+    mov ecx,29753
+    xor edx,edx
+    div ecx ; (s2 / 29753)
+    mov ebx,seed3   ;CCBBFF11
+    xchg ebx,eax
+    sub eax,ebx  ;CCBBFF11 - remainder
+    mov ecx,edx
+    xor edx,edx
+    mul ecx
+    mov seed3,eax   ;seed3 = (s2 / 29753)*(s3 - (s2 % 29753))
+
+    mov ecx,39744
+    xor edx,edx
+    div ecx ; (s3 / 39744)
+    mov ebx,seed4   ;EE22DDCC
+    xchg ebx,eax
+    sub eax,ebx  ;EE22DDCC - remainder
+    mov ecx,edx
+    xor edx,edx
+    mul ecx
+    mov seed4,eax   ;seed4 = (s3 / 39744)*(s4 - (s3 % 39744))
+
+    mov ecx,59721
+    xor edx,edx
+    div ecx ; (s4 / 59721)
+    mov ebx,seed1   ;AADD22EE
+    xchg ebx,eax
+    sub eax,ebx  ;AADD22EE - remainder
+    mov ecx,edx
+    xor edx,edx
+    mul ecx
+    mov seed1,eax   ;seed1 = (s4 / 59721)*(s1 - (s4 % 59721))
+    ;use every last byte of each new seed
+    shl eax,24
+    mov ebx,seed2
+    shl ebx,24
+    shr ebx,8
+    add eax,ebx
+    mov ebx,seed3
+    shl ebx,24
+    shr ebx,16
+    add eax,ebx
+    mov ebx,seed4
+    add al,bl
+    mov ebx,seed1
+    xor eax,ebx
+    xor edx,edx
+    div base
+    mov eax,edx
+    ret
+
+prand ENDP
 
 ; ######################################################################### 
 
