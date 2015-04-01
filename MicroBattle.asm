@@ -93,6 +93,8 @@ WinMain proc hInst     :DWORD,
     invoke LoadMenu,hInst,600  ; menu ID
     invoke SetMenu,hWnd,eax
 
+	invoke SetupScene
+
     invoke ShowWindow,hWnd,SW_SHOWNORMAL
     invoke UpdateWindow,hWnd
 
@@ -207,8 +209,12 @@ LoadGraphics proc
     invoke LoadBitmap, hInstance, RC_PLAYER2MASK
     mov hPlayer2Mask, eax
 
+    ;#### bullet
     invoke LoadBitmap, hInstance, RC_BULLET
     mov hBullet, eax
+    ;#### bullet mask
+    invoke LoadBitmap, hInstance, RC_BULLETMASK
+    mov hBulletMask, eax
 
     ;#### smoke
     invoke LoadBitmap, hInstance, RC_SMOKE
@@ -224,7 +230,6 @@ Paint_Proc proc
 
     LOCAL memDC:DWORD
     LOCAL hBmp:DWORD
-    LOCAL playerX: DWORD
 
 	invoke CreateCompatibleDC, hDC
     mov memDC, eax
@@ -244,7 +249,7 @@ Paint_Proc proc
     push ecx
     push ebx
     mov ecx, 2
-    m2m playerX, PlaygroundLeft
+
     mov ebx, OFFSET (players.Players)[0]
 L1:
     ;#### chose image handle for player given its state
@@ -280,12 +285,11 @@ L1:
     invoke PaintBMPMask,
         (Player PTR [ebx]).hPlayer,
         (Player PTR [ebx]).hPlayerMask,
-        playerX,
+        (Player PTR [ebx]).p_x,
         (Player PTR [ebx]).p_y,
         (Player PTR [ebx]).playerWidth,
         (Player PTR [ebx]).playerHeight
     add ebx, SIZEOF Player
-    m2m playerX, PlaygroundRight
     loop L1
 
     ;#### Paint bullets
@@ -293,8 +297,9 @@ L1:
     mov ebx, OFFSET bullets.bullets[0]
 
     .while ecx > 0
-        invoke PaintBMP,
+        invoke PaintBMPMask,
             (Bullet PTR [ebx]).hBullet,
+            hBulletMask,
             (Bullet PTR [ebx]).b_x,
             (Bullet PTR [ebx]).b_y,
             (Bullet PTR [ebx]).bulletWidth,
@@ -376,7 +381,6 @@ MoveSmoke proc
         mov stage, edx
         ; check if the particle is out of range
         .if (eax < PlaygroundLeft) || (eax > PlaygroundRight) \
-                || (ebx < PlaygroundTop) || (ebx > PlaygroundBottom) \
                 || (edx == 0)
                 ; TODO
             mov esi, OFFSET cloud.smoke
@@ -544,7 +548,7 @@ AddSmoke endp
 FireBullet  proc player :DWORD
     pushad
     .if bullets.len == 10
-        jmp Fin     
+        jmp Fin
     .endif
     invoke sndPlaySound, addr shootMini, SND_ASYNC
     mov edi, OFFSET bullets.bullets[0]
@@ -562,13 +566,13 @@ FireBullet  proc player :DWORD
 		neg (Bullet PTR [edi]).speed_x
 	.endif
 
-
 	mov (Bullet PTR [edi]).speed_y, 15
 
 	mov (Bullet PTR [edi]).b_x, eax
 
     mov eax, (Player PTR [ecx]).p_y
     add eax, PlayerGunHeight
+	;mov eax, PlaygroundBottom
     mov (Bullet PTR [edi]).b_y, eax
     m2m (Bullet PTR [edi]).hBullet, hBullet	
 
@@ -645,6 +649,30 @@ PaintBMPMask proc BmpHandle:DWORD,
     return 0
 
 PaintBMPMask endp
+
+; ######################################################################### 
+
+SetupScene proc
+        LOCAL m: DWORD
+	pushad
+
+    mov eax, PlaygroundTop
+    add eax, PlaygroundBottom
+    shr eax, 1
+    mov m, eax
+
+	mov edi, OFFSET players.Players[0]
+    m2m (Player PTR [edi]).p_x, PlaygroundLeft
+    m2m (Player PTR [edi]).p_y, m
+
+    add edi, SIZEOF Player
+    m2m (Player PTR [edi]).p_x, PlaygroundRight
+    m2m (Player PTR [edi]).p_y, m
+
+	popad
+	ret
+
+SetupScene endp
 
 ; ######################################################################### 
 

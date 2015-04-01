@@ -36,7 +36,8 @@
 	RC_PLAYER1MASK 		equ 	4
 	RC_PLAYER2MASK 		equ 	5
 	RC_BULLET			equ		114
-	RC_SMOKE			equ		115
+	RC_BULLETMASK		equ		115
+	RC_SMOKE			equ		116
 	MICROBATTLE_ICON 	equ 	500
 
 	;=================
@@ -56,6 +57,7 @@
 	MoveSmoke PROTO
 	FireBullet  PROTO :DWORD
 	AddSmoke PROTO :DWORD, :DWORD, :DWORD, :DWORD
+	SetupScene PROTO
 
 	;=============
 	; Local macros
@@ -122,7 +124,7 @@
 		playerHeight	dd 		84
 		playerWidth		dd 		85
 		p_x				dd 		0
-		p_y				dd 		10
+		p_y				dd 		20				; equal PlaygroundTop
 		lives			dd 		5
 		speed			dd 		2
 	Player ends
@@ -168,16 +170,19 @@
 	hPlayer2Idle	    dd 		0
 	hPlayer2Mask	    dd 		0
 	hBullet				dd 		0
+	hBulletMask			dd 		0
 	hSmoke				dd 		0
 
 	; Game parameter
-	GameTimerValue	    dd 		10
+	GameTimerValue	    dd 		17
 	WindowWidth	    	dd 		1000
 	WindowHeight	    dd 		750
-	PlaygroundTop		dd 		0
+	PlaygroundTop		dd 		20
 	PlaygroundBottom 	dd 		400
 	PlaygroundLeft 		dd  	50
 	PlaygroundRight		dd 		800
+	PlaygroundBorder	dd		10
+
 	PlayerWidth	    	dd 		85
 	playerHeight 		dd 		84
 	PlayerGunHeight 	dd 		30
