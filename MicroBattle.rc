@@ -8,5 +8,81 @@ RC_PLAYER2 BITMAP "res/redPlayer.bmp"
 RC_PLAYER1MASK BITMAP "res/bluePlayerMask.bmp"
 #define RC_PLAYER2MASK 5
 RC_PLAYER2MASK BITMAP "res/redPlayerMask.bmp"
+
+#define RC_PLAYER1_DIE 6
+RC_PLAYER1_DIE BITMAP "res/bluePlayer_die.bmp"
+#define RC_PLAYER2_DIE 7
+RC_PLAYER2_DIE BITMAP "res/redPlayer_die.bmp"
+#define RC_PLAYER1_DIEMASK 8
+RC_PLAYER1_DIEMASK BITMAP "res/bluePlayer_dieMask.bmp"
+#define RC_PLAYER2_DIEMASK 9
+RC_PLAYER2_DIEMASK BITMAP "res/redPlayer_dieMask.bmp"
+
+#define RC_PLAYER1_IDLE 10
+RC_PLAYER1_IDLE BITMAP "res/bluePlayer_idle.bmp"
+#define RC_PLAYER2_IDLE 11
+RC_PLAYER2_IDLE BITMAP "res/redPlayer_idle.bmp"
+#define RC_PLAYER1_IDLEMASK 12
+RC_PLAYER1_IDLEMASK BITMAP "res/bluePlayer_idleMask.bmp"
+#define RC_PLAYER2_IDLEMASK 13
+RC_PLAYER2_IDLEMASK BITMAP "res/redPlayer_idleMask.bmp"
+
+#define RC_SCORE_0  14
+RC_SCORE_0 BITMAP "res/0.bmp"
+#define RC_SCORE_1  15
+RC_SCORE_1 BITMAP "res/1.bmp"
+#define RC_SCORE_2  16
+RC_SCORE_2 BITMAP "res/2.bmp"
+#define RC_SCORE_3  17
+RC_SCORE_3 BITMAP "res/3.bmp"
+#define RC_SCORE_4  18
+RC_SCORE_4 BITMAP "res/4.bmp"
+#define RC_SCORE_5  19
+RC_SCORE_5 BITMAP "res/5.bmp"
+
+#define RC_PLAYER1_IDLESHOT 20
+RC_PLAYER1_IDLESHOT BITMAP "res/bluePlayer_idleShot.bmp"
+#define RC_PLAYER1_SHOT 21
+RC_PLAYER1_SHOT BITMAP "res/bluePlayerShot.bmp"
+#define RC_PLAYER2_IDLESHOT 22
+RC_PLAYER2_IDLESHOT BITMAP "res/redPlayer_idleShot.bmp"
+#define RC_PLAYER2_SHOT 23
+RC_PLAYER2_SHOT BITMAP "res/redPlayerShot.bmp"
+#define RC_PLAYER1_SHOTMASK 24
+RC_PLAYER1_SHOTMASK BITMAP "res/bluePlayerShotMask.bmp"
+#define RC_PLAYER1_IDLESHOTMASK 25 
+RC_PLAYER1_IDLESHOTMASK BITMAP "res/bluePlayer_idleShotMask.bmp"
+#define RC_PLAYER2_SHOTMASK 26
+RC_PLAYER2_SHOTMASK BITMAP "res/redPlayerShotMask.bmp"
+#define RC_PLAYER2_IDLESHOTMASK 27 
+RC_PLAYER2_IDLESHOTMASK BITMAP "res/redPlayer_idleShotMask.bmp"
+
 #define RC_BULLET 114
-RC_BULLET  BITMAP "res/bullet.bmp"
+RC_BULLET BITMAP "res/bullet.bmp"
+#define RC_BULLETMASK 115
+RC_BULLETMASK BITMAP "res/bulletMask.bmp"
+#define RC_SMOKE 116
+RC_SMOKE BITMAP "res/smoke.bmp"
+
+#define RC_CACTUS 117
+RC_CACTUS BITMAP "res/cactus.bmp"
+#define RC_CACTUSMASK 118
+RC_CACTUSMASK BITMAP "res/cactusMask.bmp"
+#define RC_BUCKET 119
+RC_BUCKET BITMAP "res/bucket.bmp"
+#define RC_BUCKETMASK 120
+RC_BUCKETMASK BITMAP "res/bucketMask.bmp"
+#define RC_STONE 121
+RC_STONE BITMAP "res/stone.bmp"
+#define RC_STONEMASK 122
+RC_STONEMASK BITMAP "res/stoneMask.bmp"
+
+#define RC_RESET 130
+RC_RESET BITMAP "res/reset.bmp"
+#define RC_WIN	131
+RC_WIN	BITMAP "res/win.bmp"
+#define RC_LOSE 132
+RC_LOSE BITMAP "res/lose.bmp"
+
+#define MICROBATTLE_ICON 500
+MICROBATTLE_ICON ICON "res/microBattle.ico"
