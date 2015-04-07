@@ -70,8 +70,8 @@ WinMain proc hInst     :DWORD,
     ; Centre window at following size
     ;================================
 
-    m2m Wwd, WindowWidth
-    m2m Wht, WindowHeight
+    mov Wwd, 1015
+    mov Wht, 780
 
     invoke GetSystemMetrics,SM_CXSCREEN
     invoke TopXY,Wwd,eax
@@ -93,7 +93,7 @@ WinMain proc hInst     :DWORD,
     invoke LoadMenu,hInst,600  ; menu ID
     invoke SetMenu,hWnd,eax
 
-	invoke SetupScene
+    invoke SetupScene
 
     invoke ShowWindow,hWnd,SW_SHOWNORMAL
     invoke UpdateWindow,hWnd
@@ -153,7 +153,7 @@ WndProc proc    hWinL  :DWORD,
     	invoke RedrawWindow, hWin, NULL, NULL, RDW_INVALIDATE
 
     .elseif uMsg == WM_KEYDOWN
-    	.if wParam == VK_A
+    	.if wParam == VK_A && GameStatus < 3
 			mov ebx, players.Players[0].state
             ;Player 1 presses the key
             .if ebx == 0            
@@ -164,7 +164,7 @@ WndProc proc    hWinL  :DWORD,
                 mov players.Players[0].speed, eax
             .elseif ebx == 2
             .endif
-    	.elseif wParam == VK_L
+    	.elseif wParam == VK_L && GameStatus < 3
             ;Player 2 presses the key
 			mov ebx, players.Players[SIZEOF Player].state
             .if ebx == 0
@@ -175,6 +175,8 @@ WndProc proc    hWinL  :DWORD,
                 mov players.Players[SIZEOF Player].speed, eax
             .elseif ebx == 2
             .endif
+	.elseif wParam == VK_R && GameStatus > 2
+	    mov GameStatus, 0
         .elseif wParam == VK_ESCAPE
             invoke PostQuitMessage,NULL
             return 0
@@ -201,12 +203,24 @@ LoadGraphics proc
     ;#### player1Mask
     invoke LoadBitmap, hInstance, RC_PLAYER1MASK
     mov hPlayer1Mask, eax
+    ;#### player1Shot
+    invoke LoadBitmap, hInstance, RC_PLAYER1_SHOT
+    mov hPlayer1Shot, eax
+    ;#### player1 Shot mask
+    invoke LoadBitmap, hInstance, RC_PLAYER1_SHOTMASK
+    mov hPlayer1ShotMask, eax
     ;#### player1 idle
-    invoke LoadBitmap, hInstance, RC_PLAYER1_NOGUN
+    invoke LoadBitmap, hInstance, RC_PLAYER1_IDLE
     mov hPlayer1Idle, eax
     ;#### player1 idle mask
-    invoke LoadBitmap, hInstance, RC_PLAYER1_NOGUNMASK
+    invoke LoadBitmap, hInstance, RC_PLAYER1_IDLEMASK
     mov hPlayer1IdleMask, eax
+    ;#### player1 idle shot
+    invoke LoadBitmap, hInstance, RC_PLAYER1_IDLESHOT
+    mov hPlayer1IdleShot, eax
+    ;#### player1 idle shot mask
+    invoke LoadBitmap, hInstance, RC_PLAYER1_IDLESHOTMASK
+    mov hPlayer1IdleShotMask, eax
     ;#### player1 dead
     invoke LoadBitmap, hInstance, RC_PLAYER1_DIE
     mov hPlayer1Dead, eax
@@ -220,18 +234,52 @@ LoadGraphics proc
     ;#### player2Mask
     invoke LoadBitmap, hInstance, RC_PLAYER2MASK
     mov hPlayer2Mask, eax
+    ;#### player2 shot
+    invoke LoadBitmap, hInstance, RC_PLAYER2_SHOT
+    mov hPlayer2Shot, eax
+    ;#### player2 shot mask
+    invoke LoadBitmap, hInstance, RC_PLAYER2_SHOTMASK
+    mov hPlayer2ShotMask, eax
     ;#### player2 idle
-    invoke LoadBitmap, hInstance, RC_PLAYER2_NOGUN
+    invoke LoadBitmap, hInstance, RC_PLAYER2_IDLE
     mov hPlayer2Idle, eax
     ;#### player2 idle mask
-    invoke LoadBitmap, hInstance, RC_PLAYER2_NOGUNMASK
+    invoke LoadBitmap, hInstance, RC_PLAYER2_IDLEMASK
     mov hPlayer2IdleMask, eax
+    ;#### player2 idle shot
+    invoke LoadBitmap, hInstance, RC_PLAYER2_IDLESHOT
+    mov hPlayer2IdleShot, eax
+    ;#### player2 idle shot mask
+    invoke LoadBitmap, hInstance, RC_PLAYER2_IDLESHOTMASK
+    mov hPlayer2IdleShotMask, eax
     ;#### player2 dead
     invoke LoadBitmap, hInstance, RC_PLAYER2_DIE
     mov hPlayer2Dead, eax
     ;#### player2 dead mask
     invoke LoadBitmap, hInstance, RC_PLAYER2_DIEMASK
     mov hPlayer2DeadMask, eax
+
+    ;#### Scores
+    mov esi, OFFSET hScore
+    invoke LoadBitmap, hInstance, RC_SCORE_0
+    mov [esi], eax
+    add esi, 4
+    invoke LoadBitmap, hInstance, RC_SCORE_1
+    mov [esi], eax
+    add esi, 4
+    invoke LoadBitmap, hInstance, RC_SCORE_2
+    mov [esi], eax
+    add esi, 4
+    invoke LoadBitmap, hInstance, RC_SCORE_3
+    mov [esi], eax
+    add esi, 4
+    invoke LoadBitmap, hInstance, RC_SCORE_4
+    mov [esi], eax
+    add esi, 4
+    invoke LoadBitmap, hInstance, RC_SCORE_5
+    mov [esi], eax
+    
+    
 
     ;#### bullet
     invoke LoadBitmap, hInstance, RC_BULLET
@@ -263,6 +311,18 @@ LoadGraphics proc
     invoke LoadBitmap, hInstance, RC_CACTUSMASK
     mov hCactusMask, eax
 
+    ;#### reseticon
+    invoke LoadBitmap, hInstance, RC_RESET
+    mov hReset, eax
+
+    ;#### win title
+    invoke LoadBitmap, hInstance, RC_WIN
+    mov hUWin, eax 
+
+    ;#### lose title
+    invoke LoadBitmap, hInstance, RC_LOSE
+    mov hLose, eax
+
     ret
     
 LoadGraphics endp
@@ -273,6 +333,8 @@ Paint_Proc proc
 
     LOCAL memDC:DWORD
     LOCAL hBmp:DWORD
+
+    pushad
 
 	invoke CreateCompatibleDC, hDC
     mov memDC, eax
@@ -287,9 +349,30 @@ Paint_Proc proc
     ;#### Paint BackGround
     invoke PaintBMP, hBmpBackround, 0, 0, WindowWidth, WindowHeight
 
+    ;#### Paint Scores
+    .if GameStatus < 3
+	mov esi, OFFSET  players.Players[0]
+	mov edi, esi
+	add edi, SIZEOF Player
+	mov eax, (Player PTR [esi]).lives
+	mov ebx, (Player PTR [edi]).lives
+	sub eax, 5
+	neg eax
+	sub ebx, 5
+	neg ebx
+	mov ecx, 4
+	mul ecx
+	mov esi, OFFSET hScore
+	add esi, eax
+	invoke PaintBMP, [esi], ScorePanel2PositionX, ScorePanelPositionY, ScorePanelWidth, ScorePanelHeight
+	mov eax, ebx
+	mul ecx
+	mov esi, OFFSET hScore
+	add esi, eax
+	invoke PaintBMP, [esi], ScorePanel1PositionX, ScorePanelPositionY, ScorePanelWidth, ScorePanelHeight
+    .endif
+
     ;#### Paint player1
-    push ecx
-    push ebx
     mov ecx, 2
 
     mov ebx, OFFSET (players.Players)[0]
@@ -299,29 +382,69 @@ L1:
     ;### for player1
     .if ecx == 2
     ;## if normal
-    .if eax == 0
-        m2m (Player PTR [ebx]).hPlayer, hPlayer1
-        m2m (Player PTR [ebx]).hPlayerMask, hPlayer1Mask
-    ;## if player has shot
-    ;.elseif eax == 1
-    ;## if player got shot
-    ;.elseif eax == 2
-    ;## if dead
-    ;.elseif eax == 3
-    .endif
+	.if eax == 0
+	    m2m (Player PTR [ebx]).hPlayer, hPlayer1
+	    m2m (Player PTR [ebx]).hPlayerMask, hPlayer1Mask
+	    m2m (Player PTR [ebx]).playerWidth, PlayerWidth
+	    m2m (Player PTR [ebx]).playerHeight, PlayerHeight
+	;## if player are idle
+	.elseif eax == 1
+	    m2m (Player PTR [ebx]).hPlayer, hPlayer1Idle
+	    m2m (Player PTR [ebx]).hPlayerMask, hPlayer1IdleMask
+	    m2m (Player PTR [ebx]).playerWidth, PlayerIdleWidth
+	    m2m (Player PTR [ebx]).playerHeight, PlayerIdleHeight
+	;## if player got shot
+	.elseif eax == 2
+	    m2m (Player PTR [ebx]).hPlayer, hPlayer1Shot
+	    m2m (Player PTR [ebx]).hPlayerMask, hPlayer1ShotMask
+	    m2m (Player PTR [ebx]).playerWidth, PlayerWidth
+	    m2m (Player PTR [ebx]).playerHeight, PlayerHeight
+	;## if player got idle shot
+	.elseif eax == 3
+	    m2m (Player PTR [ebx]).hPlayer, hPlayer1IdleShot
+	    m2m (Player PTR [ebx]).hPlayerMask, hPlayer1IdleShotMask
+	    m2m (Player PTR [ebx]).playerWidth, PlayerIdleWidth
+	    m2m (Player PTR [ebx]).playerHeight, PlayerIdleHeight
+	;## if dead
+	.elseif eax == 4
+	    m2m (Player PTR [ebx]).hPlayer, hPlayer1Dead
+	    m2m (Player PTR [ebx]).hPlayerMask, hPlayer1DeadMask
+	    m2m (Player PTR [ebx]).playerWidth, PlayerDeadWidth
+	    m2m (Player PTR [ebx]).playerHeight, PlayerDeadHeight
+	.endif
     ;### for player2
-    .elseif ecx == 1
-    ;## if normal
-    .if eax == 0
-        m2m (Player PTR [ebx]).hPlayer, hPlayer2
-        m2m (Player PTR [ebx]).hPlayerMask, hPlayer2Mask
-    ;## if player has shot
-    ;.elseif eax == 1
-    ;## if player got shot
-    ;.elseif eax == 2
-    ;## if dead
-    ;.elseif eax == 3
-    .endif
+	.elseif ecx == 1
+	;## if normal
+	.if eax == 0
+	    m2m (Player PTR [ebx]).hPlayer, hPlayer2
+	    m2m (Player PTR [ebx]).hPlayerMask, hPlayer2Mask
+	    m2m (Player PTR [ebx]).playerWidth, PlayerWidth
+	    m2m (Player PTR [ebx]).playerHeight, PlayerHeight
+	;## if player is idle
+	.elseif eax == 1
+	    m2m (Player PTR [ebx]).hPlayer, hPlayer2Idle
+	    m2m (Player PTR [ebx]).hPlayerMask, hPlayer2IdleMask
+	    m2m (Player PTR [ebx]).playerWidth, PlayerIdleWidth
+	    m2m (Player PTR [ebx]).playerHeight, PlayerIdleHeight
+	;## if player got shot
+	.elseif eax == 2
+	    m2m (Player PTR [ebx]).hPlayer, hPlayer2Shot
+	    m2m (Player PTR [ebx]).hPlayerMask, hPlayer2ShotMask
+	    m2m (Player PTR [ebx]).playerWidth, PlayerWidth
+	    m2m (Player PTR [ebx]).playerHeight, PlayerHeight
+	;## if player got idle shot
+	.elseif eax == 3
+	    m2m (Player PTR [ebx]).hPlayer, hPlayer2IdleShot
+	    m2m (Player PTR [ebx]).hPlayerMask, hPlayer2IdleShotMask
+	    m2m (Player PTR [ebx]).playerWidth, PlayerIdleWidth
+	    m2m (Player PTR [ebx]).playerHeight, PlayerIdleHeight
+	;## if dead
+	.elseif eax == 4
+	    m2m (Player PTR [ebx]).hPlayer, hPlayer2Dead
+	    m2m (Player PTR [ebx]).hPlayerMask, hPlayer2DeadMask
+	    m2m (Player PTR [ebx]).playerWidth, PlayerDeadWidth
+	    m2m (Player PTR [ebx]).playerHeight, PlayerDeadHeight
+	.endif
     .endif
 
     invoke PaintBMPMask,
@@ -332,20 +455,24 @@ L1:
         (Player PTR [ebx]).playerWidth,
         (Player PTR [ebx]).playerHeight
     add ebx, SIZEOF Player
-    loop L1
+    
+    dec ecx
+    .if ecx > 0
+	jmp L1
+    .endif
 
     ;#### Paint bullets
     mov ecx, bullets.len
-    mov ebx, OFFSET bullets.bullets[0]
+    mov ebx, OFFSET bullets.Bullets[0]
 
     .while ecx > 0
         invoke PaintBMPMask,
-            (Bullet PTR [ebx]).hBullet,
-            hBulletMask,
+	    hBullet,
+	    hBulletMask,
             (Bullet PTR [ebx]).b_x,
             (Bullet PTR [ebx]).b_y,
-            (Bullet PTR [ebx]).bulletWidth,
-            (Bullet PTR [ebx]).bulletHeight
+	    BulletWidth,
+	    BulletHeight
         add ebx, SIZEOF Bullet
         dec ecx
     .endw
@@ -363,8 +490,35 @@ L1:
         dec ecx
     .endw
 
-    pop ebx
-    push ecx
+    ;#### Paint Item
+    mov ecx, 14
+    mov esi, OFFSET items.Items[0]
+
+    .while ecx > 0
+	invoke PaintBMPMask, (Item PTR [esi]).hItem,
+	    (Item PTR [esi]).hItemMask,
+	    (Item PTR [esi]).i_x,
+	    (Item PTR [esi]).i_y,
+	    (Item PTR [esi]).itemWidth,
+	    (Item pTR [esi]).itemHeight
+	add esi, SIZEOF Item
+	dec ecx
+    .endw
+
+    ;#### Paint reset title
+    .if GameStatus > 2
+	invoke PaintBMP, hReset, ResetPositionX, ResetPositionY, ResetWidth, ResetHeight
+	.if GameStatus == 3 ;blue player win
+	    invoke PaintBMP, hUWin, BlueWinPositionX, BlueWinPositionY, WinWidth, WinHeight
+	    invoke PaintBMP, hLose, RedLosePositionX, RedLosePositionY, LoseWidth, LoseHeight
+	.elseif GameStatus == 4 ;red player win
+	    invoke PaintBMP, hUWin, RedWinPositionX, RedWinPositionY, WinWidth, WinHeight
+	    invoke PaintBMP, hLose, BlueLosePositionX, BlueLosePositionY, LoseWidth,LoseHeight
+	.endif
+    .endif
+	
+
+    popad
 
     invoke BitBlt,hDC,0,0,WindowWidth,WindowHeight,memDC,0,0,SRCCOPY
 
@@ -399,13 +553,161 @@ PaintBMP proc uses ecx edi,
 PaintBMP endp
 
 ; #########################################################################
+
+ResetGame proc
+    mov GameStatus, 1
     
+    mov esi, OFFSET players.Players[0]
+    mov edi, SIZEOF Player
+    add edi, esi
+    mov (Player PTR [esi]).state, 0
+    mov (Player PTR [esi]).lives, 5
+    mov (Player PTR [edi]).state, 0
+    mov (Player PTR [edi]).lives, 5
+
+    mov MusicTimer, 1
+
+    invoke SetupScene
+
+    ret
+
+ResetGame endp
+    
+; #########################################################################
+
 GameTimer proc
-    invoke MoveBullets
-    invoke MoveSmoke
+    pushad
+    
+    .if GameStatus == 1
+	invoke RefreshState
+	invoke MoveBullets
+	invoke MoveSmoke
 	invoke MovePlayers
-	ret
+
+	mov ecx, bullets.len
+	mov esi, 0
+	.while ecx > 0
+	    invoke DetectCollision, esi 
+	    mov eax, CollisionDetect
+
+	    ; collide into items
+	    .if eax >= 0 && eax <= 13
+		mov ebx, SIZEOF Item
+		mul ebx
+		mov edi, OFFSET items.Items[0]
+		add edi, eax
+		
+		mov eax, (Item PTR [edi]).category
+		.if eax == 1	; cacus
+		    invoke CollideIntoGrass, esi, CollisionDetect
+		.elseif eax == 2	; bucket 
+		    invoke CollideIntoTrash, esi, CollisionDetect
+		.elseif eax == 3	; stone 
+		    invoke CollideIntoStone, esi, CollisionDetect
+		.endif
+	    
+	    ; collide into players1
+	    .elseif eax == 50 
+		invoke CollideIntoPlayers, esi, 0
+	    ; collide into players2
+	    .elseif eax == 51
+		invoke CollideIntoPlayers, esi, 1
+
+	    .endif 
+	    inc esi
+	    dec ecx
+	.endw
+	
+	invoke SetItems
+    .elseif GameStatus == 0
+	invoke ResetGame
+    .elseif GameStatus > 2
+	.if MusicTimer > 0
+	    invoke sndPlaySound, addr finishMini, SND_ASYNC
+	    dec MusicTimer
+	.endif
+    .endif
+
+    popad
+    ret
 GameTimer endp
+
+; #########################################################################
+; Refresh the state of the game
+; Apply all the change only when players are both idle
+; and there is no bulllet on the screen
+; Exception: remove the got shot state instantly
+
+RefreshState proc
+
+    pushad
+
+    mov edi, OFFSET players.Players[0]
+    mov esi, SIZEOF Player
+    add esi, edi
+
+    mov eax, (Player PTR [edi]).state
+    mov ebx, (Player PTR [esi]).state
+    mov ecx, (Player PTR [edi]).remainAni
+    mov edx, (Player PTR [esi]).remainAni
+    ; remove the got shot state
+    ; remain the state for 3 time slot
+    .if eax == 2 || eax == 3
+	.if ecx > 0
+	    dec (Player PTR [edi]).remainAni
+	.else
+	    sub (Player PTR [edi]).state, 2
+	.endif
+    .endif
+    .if ebx == 2 || ebx == 3
+	.if edx > 0
+	    dec (Player PTR [esi]).remainAni
+	.else
+	    sub (Player PTR [esi]).state, 2
+	.endif
+    .endif
+
+    mov ecx, bullets.len
+    .if ecx != 0
+	jmp Fin
+    .endif
+    
+    ;#### Reload the gun if two players are idle
+
+    .if eax == 1 && ebx == 1 
+	mov (Player PTR [edi]).state, 0
+	mov (Player PTR [esi]).state, 0		
+    .else 
+	jmp Fin
+    .endif
+
+    ;#### Random a missed item
+    ;#### mostly it will be a cacus
+    mov ecx, 14
+    mov esi, OFFSET items.Items[0]
+
+    L1:
+	mov ebx, (Item PTR [esi]).category
+	.if ebx == 0
+	    push ecx
+	    invoke FakeRandom, 7
+	    pop ecx
+	    .if eax == 0
+		mov (Item PTR [esi]).category, 2
+	    .elseif eax == 1
+		mov (Item PTR [esi]).category, 3
+	    .else 
+		mov (Item PTR [esi]).category, 1
+	    .endif
+	.endif
+	add esi, SIZEOF Item
+	Loop L1
+
+Fin:
+    popad
+    ret
+
+RefreshState endp
 
 ; #########################################################################
 
@@ -443,7 +745,7 @@ MoveSmoke proc
             jmp Con
         .endif
 
-		shr edx, 2
+	shr edx, 2
         mov edx, (Smoke PTR [edi]).speed_x
         .if edx < 0fffffffh
             sub edx, SmokeSpeedDecay
@@ -483,19 +785,23 @@ MoveSmoke endp
 MoveBullets proc
     pushad
     mov ecx, bullets.len
-    mov edi, OFFSET bullets.bullets[0]
+    mov edi, OFFSET bullets.Bullets[0]
 
 	.while ecx > 0
 		mov eax, (Bullet PTR [edi]).b_x
-        .if (eax > PlaygroundRight) || (eax < PlaygroundLeft)
+        .if (eax > BulletOutrangeR) || (eax < BulletOutrangeL)
             ; check if the bullet is out of range
-            mov esi, OFFSET bullets.bullets[0]
+            mov esi, OFFSET bullets.Bullets[0]
             mov eax, SIZEOF Bullet
-			mov ebx, bullets.len
-			dec ebx
+	    mov ebx, bullets.len
+	    dec ebx
             mul ebx
             add esi, eax
 
+	    ;################################
+	    ; delete the outrange bullet and move the 
+	    ; data of the tail of the bullet array to delete-position
+	    ;################################
             m2m (Bullet PTR [edi]).hBullet, (Bullet PTR [esi]).hBullet
             m2m (Bullet PTR [edi]).b_x, (Bullet PTR [esi]).b_x
 
@@ -518,8 +824,11 @@ MoveBullets proc
             ; if the bullet hit the top or the bottom
             neg ebx
             mov (Bullet PTR [edi]).speed_y, ebx
-			add eax, ebx
-			add eax, ebx
+	    add eax, ebx
+	    add eax, ebx
+	    pushad
+	    invoke sndPlaySound, addr cacusMini, SND_ASYNC
+	    popad
         .endif
 
 		mov (Bullet PTR [edi]).b_y, eax
@@ -589,36 +898,40 @@ AddSmoke endp
 
 FireBullet  proc player :DWORD
     pushad
-    .if bullets.len == 10
-        jmp Fin
-    .endif
-    invoke sndPlaySound, addr shootMini, SND_ASYNC
-    mov edi, OFFSET bullets.bullets[0]
+    mov edi, OFFSET bullets.Bullets[0]
     mov eax, SIZEOF Bullet
     mul bullets.len
     add edi, eax
-	.if player == 0
-		mov ecx, offset players.Players[0]
-        mov eax, PlaygroundLeft
-        m2m (Bullet PTR [edi]).speed_x, BulletInitSpeed
-	.elseif
-		mov ecx, offset players.Players[SIZEOF Player]
-        mov eax, PlaygroundRight
-        m2m (Bullet PTR [edi]).speed_x, BulletInitSpeed
-		neg (Bullet PTR [edi]).speed_x
-	.endif
 
-	mov (Bullet PTR [edi]).speed_y, 15
+    .if player == 0
+	mov ecx, offset players.Players[0]
+	mov ebx, (Player PTR [ecx]).state
 
-	mov (Bullet PTR [edi]).b_x, eax
+	mov eax, Player1Position
+	add eax, PlayerWidth
+	m2m (Bullet PTR [edi]).speed_x, BulletInitSpeed
+	mov (Player PTR [ecx]).state, 1
+    .else
+	mov ecx, offset players.Players[SIZEOF Player]
+	mov ebx, (Player PTR [ecx]).state
+
+	mov eax, Player2Position
+	sub eax, BulletWidth
+	m2m (Bullet PTR [edi]).speed_x, BulletInitSpeed
+	neg (Bullet PTR [edi]).speed_x
+	mov (Player PTR [ecx]).state, 1
+    .endif
+
+    mov (Bullet PTR [edi]).speed_y, 0
+
+    mov (Bullet PTR [edi]).b_x, eax
 
     mov eax, (Player PTR [ecx]).p_y
     add eax, PlayerGunHeight
-	;mov eax, PlaygroundBottom
     mov (Bullet PTR [edi]).b_y, eax
-    m2m (Bullet PTR [edi]).hBullet, hBullet	
 
     inc bullets.len
+    invoke sndPlaySound, addr shootMini, SND_ASYNC
 
 Fin:
     popad
@@ -633,7 +946,7 @@ MovePlayers proc uses ebx edi ecx
 
 L1: 
 	mov eax, (Player PTR [edi]).speed
-    mov ebx, (Player PTR [edi]).p_y
+       mov ebx, (Player PTR [edi]).p_y
 	add ebx, eax
 	.if (ebx < PlaygroundTop) || (ebx > PlaygroundBottom)
 		neg eax
@@ -650,6 +963,52 @@ MovePlayers endp
 
 ; ######################################################################### 
 
+SetItems proc
+
+    pushad
+
+    mov esi, OFFSET items.Items[0]
+    mov items.len, 0
+    mov ecx, 14
+
+L1:
+    mov eax, (Item PTR [esi]).category
+    .if eax == 0
+	mov (Item PTR [esi]).hItem, 0
+	mov (Item PTR [esi]).hItemMask, 0
+	m2m (Item PTR [esi]).itemWidth, 0
+	m2m (Item PTR [esi]).itemHeight, 0
+    .elseif eax == 1
+	m2m (Item PTR [esi]).hItem, hCactus
+	m2m (Item PTR [esi]).hItemMask, hCactusMask
+	m2m (Item PTR [esi]).itemWidth, CactusWidth
+	m2m (Item PTR [esi]).itemHeight, CactusHeight
+	inc items.len
+    .elseif eax == 2
+	m2m (Item PTR [esi]).hItem, hBucket
+	m2m (Item PTR [esi]).hItemMask, hBucketMask
+	m2m (Item PTR [esi]).itemWidth, BucketWidth
+	m2m (Item PTR [esi]).itemHeight, BucketHeight
+	inc items.len
+    .elseif eax == 3
+	m2m (Item PTR [esi]).hItem, hStone
+	m2m (Item PTR [esi]).hItemMask, hStoneMask
+	m2m (Item PTR [esi]).itemWidth, StoneWidth
+	m2m (Item PTR [esi]).itemHeight, StoneHeight
+	inc items.len
+    .endif
+    add esi, SIZEOF Item
+    dec ecx
+    .if ecx > 0
+	jmp L1
+    .endif
+
+    popad
+    ret
+
+SetItems endp
+
+; ######################################################################### 
 TopXY proc wDim:DWORD, sDim:DWORD
 
     shr sDim, 1      ; divide screen dimension by 2
@@ -693,26 +1052,409 @@ PaintBMPMask proc BmpHandle:DWORD,
 PaintBMPMask endp
 
 ; ######################################################################### 
+; return the index of the collision thing
+
+DetectCollision PROC bulletNum:DWORD
+
+    pushad
+    mov ecx, 14
+    mov edi, OFFSET items.Items[0]
+	mov esi, OFFSET bullets.Bullets[0]
+    mov eax, bulletNum
+    mov ebx, SIZEOF Bullet
+    mul ebx
+    add esi, eax
+
+    ; check if bullet collide some items
+    .while ecx > 0
+	mov eax, (Item PTR [edi]).category
+	.if eax > 0
+	    push ecx
+	    mov ebx, (Item PTR [edi]).i_x
+	    mov edx, (Item PTR [edi]).i_y
+	    mov eax, (Bullet PTR [esi]).b_x
+	    add eax, 18
+	    mov ecx, (Bullet PTR [esi]).b_y
+	    add ecx, 9
+	    .if (eax >= ebx) && (ecx >= edx)
+		add ebx, 30
+		add edx, 60
+		.if (eax <= ebx) && (ecx <= edx)
+		    pop ecx
+		    mov eax, ecx
+		    sub eax, 14
+		    neg eax
+		    jmp Fin
+		.else 
+		    pop ecx
+		.endif
+	    .else 
+		pop ecx
+	    .endif
+	.endif
+        add edi,SIZEOF Item
+	dec ecx
+    .endw
+
+    ; check if bullet collide the player1
+    mov edi, OFFSET players.Players[0]
+    mov ebx, (Player PTR [edi]).p_x
+    mov edx, (Player PTR [edi]).p_y
+    mov eax, (Bullet PTR [esi]).b_x
+    add eax, 18
+    mov ecx, (Bullet PTR [esi]).b_y
+    add ecx, 9
+    .if (eax >= ebx) && (ecx >= edx)
+	add ebx, (Player PTR [edi]).playerWidth
+	add edx, (Player PTR [edi]).playerHeight
+	.if (eax <= ebx) && (ecx <= edx)
+	    mov eax, Player1Shot
+	    jmp Fin
+	.endif
+    .endif
+
+    ; check if bullet collide the player2
+    mov edi, OFFSET players.Players[0]
+    add edi, SIZEOF Player
+    mov ebx, (Player PTR [edi]).p_x
+    mov edx, (Player PTR [edi]).p_y
+    mov eax, (Bullet PTR [esi]).b_x
+    add eax, 18
+    mov ecx, (Bullet PTR [esi]).b_y
+    add ecx, 9
+    .if (eax >= ebx) && (ecx >= edx)
+	add ebx, (Player PTR [edi]).playerWidth
+	add edx, (Player PTR [edi]).playerHeight
+	.if (eax <= ebx) && (ecx <= edx)
+	    mov eax, Player2Shot
+	    jmp Fin
+	.endif
+    .endif
+NoCollisonDetected:
+    mov eax,NoCollisionDetected
+
+Fin:
+    mov CollisionDetect,eax
+    popad
+    ret
+
+DetectCollision ENDP
+
+; ######################################################################### 
+
+CollideIntoTrash PROC bulletNum:DWORD,itemNum:DWORD
+    pushad
+    mov edi,OFFSET items.Items[0]
+    mov eax,itemNum
+    mov ebx,SIZEOF Item
+    mul ebx
+    add edi,eax
+    mov esi,OFFSET bullets.Bullets[0]
+    mov eax,bulletNum
+    mov ebx,SIZEOF Bullet
+    mul ebx
+    add esi,eax
+    mov ecx,TrashSlowDown
+
+    ; clear the item
+    mov (Item PTR [edi]).category,0
+
+    ; slow down the bullet
+    mov edx,(Bullet PTR [esi]).speed_x
+    .if edx > 0
+        mov (Bullet PTR [esi]).speed_x,ecx
+    .else
+        neg ecx
+        mov (Bullet PTR [esi]).speed_x,ecx
+        neg ecx
+    .endif
+
+    mov edx,(Bullet PTR [esi]).speed_y
+    .if edx > 0
+        mov (Bullet PTR [esi]).speed_y,ecx
+    .elseif edx < 0
+        neg ecx
+        mov (Bullet PTR [esi]).speed_y,ecx
+        neg ecx
+    .endif
+
+    invoke sndPlaySound, addr bucketMini, SND_ASYNC
+    
+    popad
+    ret
+CollideIntoTrash ENDP
+
+; ######################################################################### 
+
+CollideIntoGrass PROC bulletNum:DWORD,itemNum:DWORD
+    pushad
+    mov edi,OFFSET items.Items[0]
+    mov eax,itemNum
+    mov ebx,SIZEOF Item
+    mul ebx
+    add edi,eax
+    mov esi,OFFSET bullets.Bullets[0]
+    mov eax,bulletNum
+    mov ebx,SIZEOF Bullet
+    mul ebx
+    add esi,eax
+
+    ; change the direction of bullet randomly
+    invoke FakeRandom,0FFFFFFFFh
+    mov edx, 0
+    mov ecx,5
+    div ecx
+
+    ; 0 is opposite direction
+    .if edx == 0
+        mov ebx,(Bullet PTR [esi]).speed_x
+        neg ebx
+        mov (Bullet PTR [esi]).speed_x,ebx
+        mov (Bullet PTR [esi]).speed_y,0
+        jmp Fin
+    .endif
+    ; 1 is right down
+    .if edx == 1
+        mov ebx,(Bullet PTR [esi]).speed_x
+        neg ebx
+        mov (Bullet PTR [esi]).speed_x,ebx
+        mov ebx,(Bullet PTR [esi]).speed_y
+		.if ebx == 0
+        mov ebx,BulletInitSpeed
+        mov (Bullet PTR [esi]).speed_y,ebx
+		.endif
+        jmp Fin
+    .endif
+    ; 2 is left down
+    .if edx == 2
+		mov ebx,(Bullet PTR [esi]).speed_y
+		.if ebx == 0
+        mov ebx,BulletInitSpeed
+        mov (Bullet PTR [esi]).speed_y,ebx
+		.endif
+        jmp Fin
+    .endif
+    ; 3 is left up
+    .if edx == 3
+        mov ebx,(Bullet PTR [esi]).speed_y
+		.if ebx == 0
+		mov ebx,BulletInitSpeed
+        neg ebx
+        mov (Bullet PTR [esi]).speed_y,ebx
+		.else
+		neg ebx
+        mov (Bullet PTR [esi]).speed_y,ebx
+		.endif
+        jmp Fin
+    .endif
+    ; 4 is right up
+    .if edx == 4
+		mov ebx,(Bullet PTR [esi]).speed_y
+		.if ebx == 0
+        mov ebx,BulletInitSpeed
+        neg ebx
+        mov (Bullet PTR [esi]).speed_y,ebx
+		.else
+        neg ebx
+        mov (Bullet PTR [esi]).speed_y,ebx
+		.endif
+        mov ebx,(Bullet PTR [esi]).speed_x
+        neg ebx
+        mov (Bullet PTR [esi]).speed_x,ebx
+        jmp Fin
+    .endif
+
+Fin:
+    mov ecx,BulletSpeedUp
+    mov edx,(Bullet PTR [esi]).speed_x
+    .if edx > 0 && edx < 4000
+        add edx,ecx
+        mov (Bullet PTR [esi]).speed_x,edx
+    .elseif edx > 4000
+        sub edx,ecx
+        mov (Bullet PTR [esi]).speed_x,edx
+    .else
+    .endif
+
+    mov edx,(Bullet PTR [esi]).speed_y
+    .if edx > 0 && edx < 4000
+        add edx,ecx
+        mov (Bullet PTR [esi]).speed_x,edx
+    .elseif edx > 4000
+        sub edx,ecx
+        mov (Bullet PTR [esi]).speed_x,edx
+    .else
+    .endif
+    ; decide whether clear the grass
+    invoke FakeRandom,15
+    .if eax == 0
+        mov (Item PTR [edi]).category,0
+    .endif
+
+    invoke sndPlaySound, addr cacusMini, SND_ASYNC
+    popad
+    ret
+CollideIntoGrass ENDP
+
+; ######################################################################### 
+
+CollideIntoStone PROC bulletNum:DWORD,itemNum:DWORD
+LOCAL temp_x:DWORD, temp_y:DWORD
+    pushad
+    mov edi,OFFSET items.Items[0]
+    mov eax,itemNum
+    mov ebx,SIZEOF Item
+    mul ebx
+    add edi,eax
+    mov esi,OFFSET bullets.Bullets[0]
+    mov eax,bulletNum
+    mov ebx,SIZEOF Bullet
+    mul ebx
+    add esi,eax
+    mov ecx,(Bullet PTR [esi]).speed_x
+	m2m temp_x,(Bullet PTR [esi]).b_x
+	m2m temp_y,(Bullet PTR [esi]).b_y
+
+    mov edx,BulletInitSpeed
+    mov (Bullet PTR [esi]).speed_y,edx
+
+    ; new bullet
+    inc bullets.len
+    mov esi,OFFSET bullets.Bullets[0]
+	mov eax, bullets.len
+	dec eax
+	mov ebx, SIZEOF Bullet
+	mul ebx
+	add esi, eax
+    mov (Bullet PTR [esi]).speed_x,ecx
+    mov edx,BulletInitSpeed
+    neg edx
+    mov (Bullet PTR [esi]).speed_y,edx
+	m2m (Bullet PTR [esi]).b_x,temp_x
+	m2m (Bullet PTR [esi]).b_y,temp_y
+
+    mov (Item PTR [edi]).category,0
+
+    invoke sndPlaySound, addr stoneMini, SND_ASYNC    
+
+    popad
+    ret
+CollideIntoStone ENDP
+
+; ######################################################################### 
+
+CollideIntoPlayers PROC bulletNum:DWORD,playerNum:DWORD
+    pushad
+
+    ; clear the bullet
+    mov edi,OFFSET bullets.Bullets[0]
+    mov eax,bulletNum
+    mov ebx,SIZEOF Bullet
+    mul ebx
+    add edi,eax
+
+    mov esi, OFFSET bullets.Bullets[0]
+    mov eax, SIZEOF Bullet
+    mov ebx, bullets.len
+    dec ebx
+    mul ebx
+    add esi, eax
+
+    m2m (Bullet PTR [edi]).hBullet, (Bullet PTR [esi]).hBullet
+    m2m (Bullet PTR [edi]).hBulletMask, (Bullet PTR [esi]).hBulletMask
+    m2m (Bullet PTR [edi]).b_x, (Bullet PTR [esi]).b_x
+    m2m (Bullet PTR [edi]).b_y, (Bullet PTR [esi]).b_y
+    m2m (Bullet PTR [edi]).speed_x, (Bullet PTR [esi]).speed_x
+    m2m (Bullet PTR [edi]).speed_y, (Bullet PTR [esi]).speed_y
+    dec bullets.len
+
+    ; decrease player's lives
+    mov edi,OFFSET players.Players[0]
+    mov eax,playerNum
+    mov ebx,SIZEOF Player
+    mul ebx
+    add edi,eax
+    dec (Player PTR [edi]).lives
+
+    ; change player's state
+    mov eax, (Player PTR [edi]).lives
+    .if eax == 0
+	mov (Player PTR [edi]).state, 4
+	.if playerNum == 0	    ; player2 win
+	    mov GameStatus, 4
+	.else			    ; player1 win
+	    mov GameStatus, 3
+	.endif
+
+    .else
+	mov eax, (Player PTR [edi]).state
+	.if eax == 0
+	mov (Player PTR [edi]).state, 2
+	mov (Player PTR [edi]).remainAni, 3
+	.elseif eax == 1
+	mov (Player PTR [edi]).state, 3
+	mov (Player PTR [edi]).remainAni, 3
+	.endif
+    .endif
+
+
+
+Fin:
+    invoke sndPlaySound, addr shotMini, SND_ASYNC
+    popad
+    ret
+CollideIntoPlayers ENDP
+
+; ######################################################################### 
 
 SetupScene proc
         LOCAL m: DWORD
-	pushad
+    pushad
 
+    ;#### initiate the position of player
     mov eax, PlaygroundTop
     add eax, PlaygroundBottom
     shr eax, 1
     mov m, eax
 
-	mov edi, OFFSET players.Players[0]
-    m2m (Player PTR [edi]).p_x, PlaygroundLeft
+    mov edi, OFFSET players.Players[0]
+    m2m (Player PTR [edi]).p_x, Player1Position
     m2m (Player PTR [edi]).p_y, m
 
     add edi, SIZEOF Player
-    m2m (Player PTR [edi]).p_x, PlaygroundRight
+    m2m (Player PTR [edi]).p_x, Player2Position
     m2m (Player PTR [edi]).p_y, m
 
-	popad
-	ret
+    ;#### initiate the position of the items
+    mov esi, OFFSET ItemX
+    mov edi, OFFSET ItemY
+    mov ebx, OFFSET items.Items[0]
+    mov ecx, 14
+
+    L1:
+	m2m (Item PTR [ebx]).i_x, [esi]
+	m2m (Item PTR [ebx]).i_y, [edi]
+	push ebx
+	push ecx
+	invoke FakeRandom, 15
+	pop ecx
+	pop ebx
+	.if eax == 1
+	    mov (Item PTR [ebx]).category, 3
+	.elseif eax == 0
+	    mov (Item PTR [ebx]).category, 2
+	.else 
+		mov (Item PTR [ebx]).category, 1
+	.endif
+	mov (Item PTR [ebx]).state, 0
+
+	add esi, 4
+	add edi, 4
+	add ebx, SIZEOF Item
+	Loop L1
+
+    popad
+    ret
 
 SetupScene endp
 
