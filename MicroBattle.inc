@@ -87,6 +87,7 @@
 	LoadGraphics PROTO
 	Paint_Proc PROTO
 	PaintBMP PROTO :DWORD, :DWORD, :DWORD, :DWORD, :DWORD
+	PaintBMP1 PROTO :DWORD, :DWORD, :DWORD, :DWORD, :DWORD, :DWORD, :DWORD
 	PaintBMPMask PROTO :DWORD, :DWORD, :DWORD, :DWORD, :DWORD, :DWORD
 	GameTimer PROTO
 	MovePlayers PROTO
@@ -166,6 +167,7 @@
 										; 2 for bucket
 										; 3 for stone
 		state	    	dd 		0
+		stage			dd		5
 	Item ends
 
 	;#### items

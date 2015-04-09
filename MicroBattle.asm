@@ -467,12 +467,11 @@ L1:
 
     .while ecx > 0
         invoke PaintBMPMask,
-	    hBullet,
-	    hBulletMask,
+			hBullet,
+			hBulletMask,
             (Bullet PTR [ebx]).b_x,
             (Bullet PTR [ebx]).b_y,
-	    BulletWidth,
-	    BulletHeight
+			BulletWidth, BulletHeight
         add ebx, SIZEOF Bullet
         dec ecx
     .endw
@@ -482,10 +481,13 @@ L1:
     mov ebx, OFFSET cloud.smoke[0]
 
     .while ecx > 0
-        invoke PaintBMP, hSmoke,
+		mov eax, (Smoke PTR [ebx]).stage
+		mul smokeWidth
+        invoke PaintBMP1, hSmoke,
             (Smoke PTR [ebx]).smoke_x,
             (Smoke PTR [ebx]).smoke_y,
-            smokeWidth, smokeHeight
+            smokeWidth, smokeHeight,
+			eax, 0
         add ebx, SIZEOF Smoke
         dec ecx
     .endw
@@ -528,6 +530,31 @@ L1:
     ret  
 
 Paint_Proc endp
+
+; #########################################################################
+
+PaintBMP1 proc uses ecx edi,
+		  BmpHandle :DWORD,
+	      PosX :DWORD,
+	      PosY :DWORD,
+	      BmpW :DWORD,
+	      BmpH :DWORD,
+		  SrcX :DWORD,
+		  SrcY :DWORD
+
+    LOCAL memDC:DWORD
+
+    invoke CreateCompatibleDC, hDC
+    mov memDC, eax
+
+    invoke SelectObject, memDC, BmpHandle
+    invoke BitBlt, hDC2, PosX, PosY, BmpW, BmpH, memDC, SrcX, SrcY, SRCCOPY
+    invoke DeleteDC, memDC
+
+    mov eax, 0
+	ret
+
+PaintBMP1 endp
 
 ; #########################################################################
 
@@ -620,12 +647,12 @@ GameTimer proc
 	
 	invoke SetItems
     .elseif GameStatus == 0
-	invoke ResetGame
+		invoke ResetGame
     .elseif GameStatus > 2
-	.if MusicTimer > 0
-	    invoke sndPlaySound, addr finishMini, SND_ASYNC
-	    dec MusicTimer
-	.endif
+		.if MusicTimer > 0
+			invoke sndPlaySound, addr finishMini, SND_ASYNC
+			dec MusicTimer
+		.endif
     .endif
 
     popad
@@ -745,7 +772,7 @@ MoveSmoke proc
             jmp Con
         .endif
 
-	shr edx, 2
+		shr edx, 2
         mov edx, (Smoke PTR [edi]).speed_x
         .if edx < 0fffffffh
             sub edx, SmokeSpeedDecay
