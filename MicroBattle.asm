@@ -12,6 +12,10 @@ start:
     invoke GetModuleHandle, NULL
     mov hInstance, eax
 
+    ;###### Random initiate
+    invoke GetTickCount
+    invoke pseed, eax, 2342347, 63452, eax
+
     ;###### Extract images from exe's resource file
     invoke LoadGraphics
 
@@ -310,6 +314,12 @@ LoadGraphics proc
     ;#### cactus mask
     invoke LoadBitmap, hInstance, RC_CACTUSMASK
     mov hCactusMask, eax
+    ;#### cactus gone 
+    invoke LoadBitmap, hInstance, RC_CACTUSGONE
+    mov hCactusGone, eax
+    ;#### cactus gone mask
+    invoke LoadBitmap, hInstance, RC_CACTUSGONEMASK
+    mov hCactusGoneMask, eax
 
     ;#### reseticon
     invoke LoadBitmap, hInstance, RC_RESET
@@ -412,7 +422,7 @@ L1:
 	    m2m (Player PTR [ebx]).playerWidth, PlayerDeadWidth
 	    m2m (Player PTR [ebx]).playerHeight, PlayerDeadHeight
 	.endif
-    ;### for player2
+	;### for player2
 	.elseif ecx == 1
 	;## if normal
 	.if eax == 0
@@ -483,7 +493,7 @@ L1:
     .while ecx > 0
 		mov eax, (Smoke PTR [ebx]).stage
 		mul smokeWidth
-        invoke PaintBMP1, hSmoke,
+        invoke PaintBMPEx, hSmoke,
             (Smoke PTR [ebx]).smoke_x,
             (Smoke PTR [ebx]).smoke_y,
             smokeWidth, smokeHeight,
@@ -497,12 +507,32 @@ L1:
     mov esi, OFFSET items.Items[0]
 
     .while ecx > 0
-	invoke PaintBMPMask, (Item PTR [esi]).hItem,
+	mov eax, (Item PTR [esi]).state
+	mov ebx, (Item PTR [esi]).itemWidth
+	mul ebx
+	mov edx, (Item PTR [esi]).category
+	.if edx == CACTUS
+	    mov edx, CacusOffsetY
+	    mov ebx, CacusOffsetX
+	.elseif edx == STONE
+	    add edx, StoneOffsetX
+	    mov ebx, StoneOffsetY
+	.elseif edx == BUCKET
+	    add edx, BucketOffsetX
+	    mov ebx, BucketOffsetY
+	.endif
+	sub (Item PTR [esi]).i_x, ebx
+	sub (Item PTR [esi]).i_y, edx
+	invoke PaintBMPMaskEx, (Item PTR [esi]).hItem,
 	    (Item PTR [esi]).hItemMask,
 	    (Item PTR [esi]).i_x,
 	    (Item PTR [esi]).i_y,
 	    (Item PTR [esi]).itemWidth,
-	    (Item pTR [esi]).itemHeight
+	    (Item pTR [esi]).itemHeight,
+	    eax,
+	    0
+	add (Item PTR [esi]).i_x, ebx
+	add (Item PTR [esi]).i_y, edx
 	add esi, SIZEOF Item
 	dec ecx
     .endw
@@ -533,7 +563,7 @@ Paint_Proc endp
 
 ; #########################################################################
 
-PaintBMP1 proc uses ecx edi,
+PaintBMPEx proc uses ecx edi,
 		  BmpHandle :DWORD,
 	      PosX :DWORD,
 	      PosY :DWORD,
@@ -554,7 +584,7 @@ PaintBMP1 proc uses ecx edi,
     mov eax, 0
 	ret
 
-PaintBMP1 endp
+PaintBMPEx endp
 
 ; #########################################################################
 
@@ -610,41 +640,8 @@ GameTimer proc
 	invoke MoveBullets
 	invoke MoveSmoke
 	invoke MovePlayers
-
-	mov ecx, bullets.len
-	mov esi, 0
-	.while ecx > 0
-	    invoke DetectCollision, esi 
-	    mov eax, CollisionDetect
-
-	    ; collide into items
-	    .if eax >= 0 && eax <= 13
-		mov ebx, SIZEOF Item
-		mul ebx
-		mov edi, OFFSET items.Items[0]
-		add edi, eax
-		
-		mov eax, (Item PTR [edi]).category
-		.if eax == 1	; cacus
-		    invoke CollideIntoGrass, esi, CollisionDetect
-		.elseif eax == 2	; bucket 
-		    invoke CollideIntoTrash, esi, CollisionDetect
-		.elseif eax == 3	; stone 
-		    invoke CollideIntoStone, esi, CollisionDetect
-		.endif
-	    
-	    ; collide into players1
-	    .elseif eax == 50 
-		invoke CollideIntoPlayers, esi, 0
-	    ; collide into players2
-	    .elseif eax == 51
-		invoke CollideIntoPlayers, esi, 1
-
-	    .endif 
-	    inc esi
-	    dec ecx
-	.endw
-	
+	invoke BulletCollide
+	invoke AnimFunc
 	invoke SetItems
     .elseif GameStatus == 0
 		invoke ResetGame
@@ -658,6 +655,83 @@ GameTimer proc
     popad
     ret
 GameTimer endp
+
+; #########################################################################
+; Check if each bullet collide into items
+
+BulletCollide proc
+
+    pushad
+
+    mov ecx, bullets.len
+    mov esi, 0
+    .while ecx > 0
+	invoke DetectCollision, esi 
+	mov eax, CollisionDetect
+
+	; collide into items
+	.if eax >= 0 && eax <= 13
+	    mov ebx, SIZEOF Item
+	    mul ebx
+	    mov edi, OFFSET items.Items[0]
+	    add edi, eax
+	    
+	    mov eax, (Item PTR [edi]).category
+	    .if eax == 1	; cacus
+		invoke CollideIntoGrass, esi, CollisionDetect
+	    .elseif eax == 2	; bucket 
+		invoke CollideIntoTrash, esi, CollisionDetect
+	    .elseif eax == 3	; stone 
+		invoke CollideIntoStone, esi, CollisionDetect
+	    .endif
+	
+	; collide into players1
+	.elseif eax == 50 
+	    invoke CollideIntoPlayers, esi, 0
+	; collide into players2
+	.elseif eax == 51
+	    invoke CollideIntoPlayers, esi, 1
+
+	.endif 
+	inc esi
+	dec ecx
+    .endw
+
+    popad
+    ret
+
+BulletCollide endp
+
+; #########################################################################
+; Deal with animation of the collide
+
+AnimFunc proc
+
+    pushad
+
+    mov esi, OFFSET items.Items[0]
+    mov ecx, 14
+
+    L1:
+	mov eax, (Item PTR [esi]).state
+	mov ebx, (Item PTR [esi]).disappear
+	.if eax == 0 && ebx
+	    mov (Item PTR [esi]).category, 0
+	    mov (Item PTR [esi]).state, ANIMBEGIN
+	    mov (Item PTR [esi]).disappear, 0
+	.elseif eax == 0
+	    mov (Item PTR [esi]).state, ANIMBEGIN
+	.elseif eax < ANIMBEGIN
+	    dec (Item PTR [esi]).state
+	.endif
+	add esi, SIZEOF Item
+	Loop L1
+	    
+
+    popad
+    ret
+
+AnimFunc endp
 
 ; #########################################################################
 ; Refresh the state of the game
@@ -717,7 +791,7 @@ RefreshState proc
 	mov ebx, (Item PTR [esi]).category
 	.if ebx == 0
 	    push ecx
-	    invoke FakeRandom, 7
+	    invoke FakeRandom, 3
 	    pop ecx
 	    .if eax == 0
 		mov (Item PTR [esi]).category, 2
@@ -1000,24 +1074,30 @@ SetItems proc
 
 L1:
     mov eax, (Item PTR [esi]).category
+    mov ebx, (Item PTR [esi]).disappear
     .if eax == 0
 	mov (Item PTR [esi]).hItem, 0
 	mov (Item PTR [esi]).hItemMask, 0
 	m2m (Item PTR [esi]).itemWidth, 0
 	m2m (Item PTR [esi]).itemHeight, 0
-    .elseif eax == 1
-	m2m (Item PTR [esi]).hItem, hCactus
-	m2m (Item PTR [esi]).hItemMask, hCactusMask
+    .elseif eax == CACTUS
+	.if ebx
+	    m2m (Item PTR [esi]).hItem, hCactusGone
+	    m2m (Item PTR [esi]).hItemMask, hCactusGoneMask
+	.else
+	    m2m (Item PTR [esi]).hItem, hCactus
+	    m2m (Item PTR [esi]).hItemMask, hCactusMask
+	.endif
 	m2m (Item PTR [esi]).itemWidth, CactusWidth
 	m2m (Item PTR [esi]).itemHeight, CactusHeight
 	inc items.len
-    .elseif eax == 2
+    .elseif eax == BUCKET
 	m2m (Item PTR [esi]).hItem, hBucket
 	m2m (Item PTR [esi]).hItemMask, hBucketMask
 	m2m (Item PTR [esi]).itemWidth, BucketWidth
 	m2m (Item PTR [esi]).itemHeight, BucketHeight
 	inc items.len
-    .elseif eax == 3
+    .elseif eax == STONE
 	m2m (Item PTR [esi]).hItem, hStone
 	m2m (Item PTR [esi]).hItemMask, hStoneMask
 	m2m (Item PTR [esi]).itemWidth, StoneWidth
@@ -1079,6 +1159,38 @@ PaintBMPMask proc BmpHandle:DWORD,
 PaintBMPMask endp
 
 ; ######################################################################### 
+
+PaintBMPMaskEx proc BmpHandle:DWORD, 
+		    BmpHandleMask:DWORD,
+		    PosX:DWORD,
+		    PosY:DWORD,
+		    BmpW:DWORD,
+		    BmpH:DWORD,
+		    SrcX:DWORD,
+		    SrcY:DWORD
+
+    LOCAL memDC:DWORD
+
+    pushad
+
+
+    invoke CreateCompatibleDC, hDC
+    mov memDC, eax
+
+    invoke SelectObject, memDC, BmpHandleMask
+    invoke BitBlt, hDC2, PosX, PosY, BmpW, BmpH, memDC, SrcX, SrcY, SRCAND
+    invoke SelectObject, memDC, BmpHandle
+    invoke BitBlt, hDC2, PosX, PosY, BmpW, BmpH, memDC, SrcX, SrcY, SRCPAINT
+
+    invoke DeleteDC, memDC
+
+    popad
+
+    return 0
+
+PaintBMPMaskEx endp
+
+; ######################################################################### 
 ; return the index of the collision thing
 
 DetectCollision PROC bulletNum:DWORD
@@ -1095,7 +1207,8 @@ DetectCollision PROC bulletNum:DWORD
     ; check if bullet collide some items
     .while ecx > 0
 	mov eax, (Item PTR [edi]).category
-	.if eax > 0
+	mov ebx, (Item PTR [edi]).state
+	.if eax > 0 && ebx == ANIMBEGIN
 	    push ecx
 	    mov ebx, (Item PTR [edi]).i_x
 	    mov edx, (Item PTR [edi]).i_y
@@ -1183,12 +1296,10 @@ CollideIntoTrash PROC bulletNum:DWORD,itemNum:DWORD
     add esi,eax
     mov ecx,TrashSlowDown
 
-    ; clear the item
-    mov (Item PTR [edi]).category,0
 
     ; slow down the bullet
     mov edx,(Bullet PTR [esi]).speed_x
-    .if edx > 0
+    .if edx > 0 && edx < 4000
         mov (Bullet PTR [esi]).speed_x,ecx
     .else
         neg ecx
@@ -1197,13 +1308,16 @@ CollideIntoTrash PROC bulletNum:DWORD,itemNum:DWORD
     .endif
 
     mov edx,(Bullet PTR [esi]).speed_y
-    .if edx > 0
+    .if edx > 0 && edx < 4000
         mov (Bullet PTR [esi]).speed_y,ecx
-    .elseif edx < 0
+    .else
         neg ecx
         mov (Bullet PTR [esi]).speed_y,ecx
         neg ecx
     .endif
+
+    dec (Item PTR [edi]).state
+    mov (Item PTR [edi]).disappear, 1
 
     invoke sndPlaySound, addr bucketMini, SND_ASYNC
     
@@ -1311,12 +1425,15 @@ Fin:
         sub edx,ecx
         mov (Bullet PTR [esi]).speed_x,edx
     .else
+
     .endif
-    ; decide whether clear the grass
-    invoke FakeRandom,15
+    ;decide whether clear the grass
+    invoke FakeRandom, 3
     .if eax == 0
-        mov (Item PTR [edi]).category,0
+       mov (Item PTR [edi]).disappear,1
     .endif
+
+    dec (Item PTR [edi]).state
 
     invoke sndPlaySound, addr cacusMini, SND_ASYNC
     popad
@@ -1360,7 +1477,9 @@ LOCAL temp_x:DWORD, temp_y:DWORD
 	m2m (Bullet PTR [esi]).b_x,temp_x
 	m2m (Bullet PTR [esi]).b_y,temp_y
 
-    mov (Item PTR [edi]).category,0
+
+    dec (Item PTR [edi]).state
+    mov (Item PTR [edi]).disappear, 1
 
     invoke sndPlaySound, addr stoneMini, SND_ASYNC    
 
@@ -1473,7 +1592,7 @@ SetupScene proc
 	.else 
 		mov (Item PTR [ebx]).category, 1
 	.endif
-	mov (Item PTR [ebx]).state, 0
+	mov (Item PTR [ebx]).state, ANIMBEGIN
 
 	add esi, 4
 	add edi, 4

@@ -68,13 +68,17 @@ RC_SMOKE BITMAP "res/smoke.bmp"
 RC_CACTUS BITMAP "res/cactus.bmp"
 #define RC_CACTUSMASK 118
 RC_CACTUSMASK BITMAP "res/cactusMask.bmp"
-#define RC_BUCKET 119
+#define RC_CACTUSGONE 119
+RC_CACTUSGONE BITMAP "res/cactusGone.bmp"
+#define RC_CACTUSGONEMASK 120
+RC_CACTUSGONEMASK BITMAP "res/cactusGoneMask.bmp"
+#define RC_BUCKET 121
 RC_BUCKET BITMAP "res/bucket.bmp"
-#define RC_BUCKETMASK 120
+#define RC_BUCKETMASK 122
 RC_BUCKETMASK BITMAP "res/bucketMask.bmp"
-#define RC_STONE 121
+#define RC_STONE 125
 RC_STONE BITMAP "res/stone.bmp"
-#define RC_STONEMASK 122
+#define RC_STONEMASK 126
 RC_STONEMASK BITMAP "res/stoneMask.bmp"
 
 #define RC_RESET 130
@@ -83,6 +87,8 @@ RC_RESET BITMAP "res/reset.bmp"
 RC_WIN	BITMAP "res/win.bmp"
 #define RC_LOSE 132
 RC_LOSE BITMAP "res/lose.bmp"
+
+
 
 #define MICROBATTLE_ICON 500
 MICROBATTLE_ICON ICON "res/microBattle.ico"

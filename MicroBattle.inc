@@ -66,16 +66,25 @@
 	RC_SMOKE					equ		116
 	RC_CACTUS 					equ 	117
 	RC_CACTUSMASK				equ 	118
-	RC_BUCKET 					equ 	119
-	RC_BUCKETMASK				equ 	120
-	RC_STONE					equ 	121
-	RC_STONEMASK				equ 	122
+	RC_CACTUSGONE				equ	119
+	RC_CACTUSGONEMASK			equ	120
+	RC_BUCKET 					equ 	121
+	RC_BUCKETMASK				equ 	122
+	RC_STONE					equ 	125
+	RC_STONEMASK				equ 	126
 
 	RC_RESET				equ	130
 	RC_WIN					equ	131
 	RC_LOSE					equ	132
 
 	MICROBATTLE_ICON 			equ 	500
+
+	CACTUS					equ	1
+	BUCKET					equ	2
+	STONE					equ	3
+
+	ANIMBEGIN				equ	32
+	
 
 	;=================
 	; Local prototypes
@@ -87,9 +96,12 @@
 	LoadGraphics PROTO
 	Paint_Proc PROTO
 	PaintBMP PROTO :DWORD, :DWORD, :DWORD, :DWORD, :DWORD
-	PaintBMP1 PROTO :DWORD, :DWORD, :DWORD, :DWORD, :DWORD, :DWORD, :DWORD
+	PaintBMPEx PROTO :DWORD, :DWORD, :DWORD, :DWORD, :DWORD, :DWORD, :DWORD
 	PaintBMPMask PROTO :DWORD, :DWORD, :DWORD, :DWORD, :DWORD, :DWORD
+	PaintBMPMaskEx PROTO :DWORD, :DWORD, :DWORD, :DWORD, :DWORD, :DWORD, :DWORD, :DWORD
+	AnimFunc PROTO
 	GameTimer PROTO
+	BulletCollide PROTO
 	MovePlayers PROTO
 	MoveBullets PROTO
 	MoveSmoke PROTO
@@ -166,8 +178,8 @@
 										; 1 for cactus 
 										; 2 for bucket
 										; 3 for stone
-		state	    	dd 		0
-		stage			dd		5
+		disappear		dd		0
+		state			dd		ANIMBEGIN
 	Item ends
 
 	;#### items
@@ -254,6 +266,8 @@
 	hSmoke				dd 		0
 	hCactus 			dd 		0
 	hCactusMask			dd 		0
+	hCactusGone			dd		0
+	hCactusGoneMask			dd		0
 	hBucket				dd 		0
 	hBucketMask			dd 		0
 	hStone 				dd 		0
@@ -311,10 +325,16 @@
 	BulletHeight		dd		17
 	CactusWidth 		dd 		55
 	CactusHeight		dd 		81
-	BucketWidth		dd		56
-	BucketHeight		dd		64
-	StoneWidth		dd		48
-	StoneHeight		dd		48
+	CacusOffsetX		dd		0
+	CacusOffsetY		dd		0
+	BucketWidth		dd		168
+	BucketHeight		dd		192
+	BucketOffsetX		dd		61
+	BucketOffsetY		dd		52
+	StoneWidth		dd		144
+	StoneHeight		dd		192
+	StoneOffsetX		dd		48
+	StoneOffsetY		dd		48
 	BulletOutrangeR		dd		1000
 	BulletOutrangeL		dd		0
 
