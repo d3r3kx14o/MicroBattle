@@ -474,14 +474,40 @@ L1:
     ;#### Paint bullets
     mov ecx, bullets.len
     mov ebx, OFFSET bullets.Bullets[0]
-
     .while ecx > 0
-        invoke PaintBMPMask,
+    ;### choose direction of the bullet
+    mov eax, (Bullet PTR [ebx]).speed_x
+    mov edx, (Bullet PTR [ebx]).speed_y
+    ;## x direction is positive
+    .if eax > 0 && eax < 4000
+	.if edx > 0 && edx < 4000
+	    mov eax, 4
+	.elseif edx == 0
+	    mov eax, 3
+	.else 
+	    mov eax, 2
+	.endif
+    .else
+	.if edx == 0
+	    mov eax, 0
+	.elseif edx > 0 && edx < 4000
+	    mov eax, 5
+	.else
+	    mov eax, 1
+	.endif
+    .endif
+    mov edx, BulletWidth
+    mul edx
+	
+        invoke PaintBMPMaskEx,
 			hBullet,
 			hBulletMask,
             (Bullet PTR [ebx]).b_x,
             (Bullet PTR [ebx]).b_y,
-			BulletWidth, BulletHeight
+			BulletWidth,
+			BulletHeight,
+			eax,
+			0
         add ebx, SIZEOF Bullet
         dec ecx
     .endw

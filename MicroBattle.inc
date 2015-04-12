@@ -323,8 +323,8 @@
 	BulletInitSpeed		dd 		10
 	BulletSpeedUp		dd		5
 	BulletStageNumber	dd		8
-	BulletWidth			dd 		36
-	BulletHeight		dd		17
+	BulletWidth		dd 		36
+	BulletHeight		dd		36
 	CactusWidth 		dd 		55
 	CactusHeight		dd 		81
 	CacusOffsetX		dd		0
