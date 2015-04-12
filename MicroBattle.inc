@@ -283,6 +283,8 @@
 	PlaygroundLeft 		dd  	50
 	PlaygroundRight		dd 		800
 	PlaygroundBorder	dd		10
+	ItemTop				dd		10 ;	PlaygroundTop - 10
+	ItemBottom			dd		430;	PlaygroundBottom + PlayerGunHeight
 
 	ResetPositionX		dd	435
 	ResetPositionY		dd	600

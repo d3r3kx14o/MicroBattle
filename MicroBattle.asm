@@ -825,7 +825,7 @@ MoveSmoke proc
         mov edx, (Smoke PTR [edi]).stage
         mov stage, edx
         ; check if the particle is out of range
-        .if (eax < PlaygroundLeft) || (eax > PlaygroundRight) \
+        .if (eax < ItemTop) || (eax > ItemBottom) \
                 || (edx == 0)
                 ; TODO
             mov esi, OFFSET cloud.smoke
@@ -921,7 +921,7 @@ MoveBullets proc
 		mov eax, (Bullet PTR [edi]).b_y
         mov ebx, (Bullet PTR [edi]).speed_y
 		add eax, ebx
-        .if (eax < PlaygroundTop) || (eax > PlaygroundBottom)
+        .if (eax < ItemTop) || (eax > ItemBottom)
             ; if the bullet hit the top or the bottom
             neg ebx
             mov (Bullet PTR [edi]).speed_y, ebx
@@ -1005,22 +1005,22 @@ FireBullet  proc player :DWORD
     add edi, eax
 
     .if player == 0
-	mov ecx, offset players.Players[0]
-	mov ebx, (Player PTR [ecx]).state
+		mov ecx, offset players.Players[0]
+		mov ebx, (Player PTR [ecx]).state
 
-	mov eax, Player1Position
-	add eax, PlayerWidth
-	m2m (Bullet PTR [edi]).speed_x, BulletInitSpeed
-	mov (Player PTR [ecx]).state, 1
+		mov eax, Player1Position
+		add eax, PlayerWidth
+		m2m (Bullet PTR [edi]).speed_x, BulletInitSpeed
+		mov (Player PTR [ecx]).state, 1
     .else
-	mov ecx, offset players.Players[SIZEOF Player]
-	mov ebx, (Player PTR [ecx]).state
+		mov ecx, offset players.Players[SIZEOF Player]
+		mov ebx, (Player PTR [ecx]).state
 
-	mov eax, Player2Position
-	sub eax, BulletWidth
-	m2m (Bullet PTR [edi]).speed_x, BulletInitSpeed
-	neg (Bullet PTR [edi]).speed_x
-	mov (Player PTR [ecx]).state, 1
+		mov eax, Player2Position
+		sub eax, BulletWidth
+		m2m (Bullet PTR [edi]).speed_x, BulletInitSpeed
+		neg (Bullet PTR [edi]).speed_x
+		mov (Player PTR [ecx]).state, 1
     .endif
 
     mov (Bullet PTR [edi]).speed_y, 0
