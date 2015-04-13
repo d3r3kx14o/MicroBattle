@@ -1003,15 +1003,35 @@ AddSmoke proc start_x :DWORD, start_y :DWORD, direction_x :DWORD, direction_y :D
         mov (Smoke PTR [edi]).speed_y, eax
 		mov eax, direction_x
         mov (Smoke PTR [edi]).speed_x, eax
-		.if eax > 0fffffffh
-			mov ebx, start_x
-			add ebx, BulletWidth
-			mov (Smoke PTR [edi]).smoke_x, ebx
-		.else
-			m2m (Smoke PTR [edi]).smoke_x, start_x
-		.endif
-        m2m (Smoke PTR [edi]).smoke_y, start_y
 
+        mov ebx, start_x
+        mov edx, start_y
+		.if eax > 0fffffffh
+            mov eax, direction_y
+            .if eax > 0fffffffh
+                add ebx, 28
+                add edx, 28
+            .elseif eax == 0
+                add ebx, BulletWidth
+                add edx, 12
+            .else
+                add ebx, 28
+                ; add edx, 4
+            .endif
+		.else
+            mov eax, direction_y
+			.if eax > 0fffffffh
+                ; add ebx, 4
+                add edx, 28
+            .elseif eax == 0
+                add edx, 12 
+            .else
+                ;add ebx, 4
+                ;add edx, 4
+            .endif
+		.endif
+        mov (Smoke PTR [edi]).smoke_y, edx
+        mov (Smoke PTR [edi]).smoke_x, ebx
 
         add edi, SIZEOF Smoke
 		inc cloud.len
