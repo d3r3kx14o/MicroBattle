@@ -950,19 +950,18 @@ MoveBullets proc
 		mov eax, (Bullet PTR [edi]).b_y
         mov ebx, (Bullet PTR [edi]).speed_y
 		add eax, ebx
-        .if (eax < PlaygroundTop) || (eax > PlaygroundBottom)
+        .if (eax < ItemTop) || (eax > ItemBottom)
             ; if the bullet hit the top or the bottom
             neg ebx
             mov (Bullet PTR [edi]).speed_y, ebx
-	    add eax, ebx
-	    add eax, ebx
-	    pushad
-	    invoke sndPlaySound, addr cacusMini, SND_ASYNC
-	    popad
+    	    add eax, ebx
+    	    add eax, ebx
+    	    pushad
+    	    invoke sndPlaySound, addr cacusMini, SND_ASYNC
+    	    popad
         .endif
 
 		mov (Bullet PTR [edi]).b_y, eax
-
 
         invoke AddSmoke,
                 (Bullet PTR [edi]).b_x,
